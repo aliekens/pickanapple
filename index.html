@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pick an apple</title> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            height: 100%; 
+            margin: 0;
+            overflow: hidden; 
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333; /* Default text color */
+            display: flex;
+            flex-direction: column; 
+            box-sizing: border-box;
+            gap: 20px; /* Consistent spacing between body children */
+            position: relative; /* Needed for absolute positioning of watermark */
+        }
+        
+        #stats-header { /* New header for stats */
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-around; /* Distribute stats */
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping */
+            gap: 10px 20px; /* Spacing */
+            flex-shrink: 0; /* Prevent header from shrinking */
+            font-size: 1.125rem; 
+            font-weight: 600; 
+            color: #2D3748; 
+        }
+         #stats-header span { /* Styling for individual stats */
+            display: inline-flex;
+            align-items: center;
+         }
+         #stats-header .item-emoji {
+            margin-left: 0.5em; /* Space before emoji */
+         }
+
+        #main-content {
+            display: flex;
+            flex-direction: column; 
+            flex-grow: 1; 
+            overflow: hidden; 
+            gap: 20px; 
+        }
+        @media (min-width: 768px) { 
+            #main-content {
+                flex-direction: row; 
+                gap: 20px; 
+            }
+        }
+
+        #left-panel, #right-panel {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex; 
+            flex-direction: column;
+            overflow: hidden; /* Prevent panel itself from scrolling */
+            flex-basis: 0; /* Allow panels to grow/shrink evenly within main-content */
+            flex-grow: 1;
+        }
+
+        /* Left panel scrollbar on the left */
+        #left-panel {
+            direction: rtl; /* Makes scrollbar appear on the left */
+        }
+        #left-panel-content { /* Wrapper for content inside left panel */
+            direction: ltr; /* Reset text/layout direction for content */
+            width: 100%; /* Ensure content takes full width */
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+             overflow: hidden; /* Prevent this wrapper from scrolling */
+        }
+
+        @media (min-width: 768px) {
+            #left-panel {
+                flex-grow: 2; /* Roughly 2/3 */
+            }
+             #right-panel {
+                 flex-grow: 1; /* Roughly 1/3 */
+             }
+        }
+        
+        #inventory { /* The scrollable list */
+            padding-right: 0px; 
+            flex-grow: 1; 
+            overflow-y: auto; /* Make the list scrollable */
+             direction: ltr; /* Ensure list content is LTR */
+            /* Hide scrollbar */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* Internet Explorer 10+ */
+        }
+        #inventory::-webkit-scrollbar { /* WebKit */
+            display: none;
+        }
+
+        #right-panel {
+             overflow-y: auto; /* Allow right panel to scroll if needed */
+        }
+         #task-queue {
+            flex-grow: 1; 
+        }
+
+        /* General H1/H2 Styling */
+        h1, h2 { 
+            color: #1a202c;
+            margin-top: 0;
+            flex-shrink: 0; 
+            border-bottom: 2px solid #e2e8f0; 
+            padding-bottom: 8px;
+            margin-bottom: 16px; 
+            font-weight: 700; /* Bold for all headers */
+        }
+        h1 { /* Styles for H1 (Panel Titles: Inventory, Tasks) - NO LONGER USED FOR PANEL TITLES */
+            font-size: 1.5rem; /* text-2xl */
+        }
+        h2 { /* Styles for H2 (Inventory Category Headers, Task Sub-headers) */
+             font-size: 1.125rem; /* text-lg */
+             color: #2D3748; 
+             margin-top: 16px; 
+             margin-bottom: 10px;
+             padding-bottom: 6px;
+             border-bottom: 1px solid #CBD5E0; /* Lighter border for sub-headers */
+        }
+         #inventory h2:first-of-type,
+         #task-queue h2:first-of-type { /* Remove top margin for the very first sub-header in each panel */
+             margin-top: 0; 
+         }
+        
+
+        .inventory-item {
+            padding: 8px 4px; 
+            border-bottom: 1px solid #edf2f7;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            transition: background-color 0.2s ease-out; 
+        }
+         /* Alternating row colors */
+        #inventory .inventory-item:nth-child(even) {
+             background-color: #f9fafb; 
+             border-radius: 4px; 
+         }
+        /* Highlight for new items - applied to the whole row */
+        .inventory-item.new-item-highlight { 
+            background-color: #FEFCBF !important; 
+            border-radius: 4px;
+        }
+
+        .inventory-item:last-child {
+            border-bottom: none;
+        }
+        
+        .inventory-item-left-section { 
+             display: flex;
+             align-items: center;
+             flex-wrap: wrap; 
+             flex-grow: 1; 
+             margin-right: 8px; 
+             overflow: hidden; 
+        }
+
+        .inventory-item-main-details { 
+            display: flex;
+            align-items: center;
+            flex-shrink: 0; 
+            margin-right: 8px; 
+        }
+        .inventory-count {
+            font-weight: bold; 
+            min-width: 1.5em; 
+            text-align: right;
+            margin-right: 0.3em; 
+        }
+        .count-zero { 
+             color: #E53E3E; 
+        }
+        .inventory-item-main-details .item-emoji { 
+             margin-right: 0.5em; 
+        }
+        .inventory-item-name { 
+            font-weight: 500;
+            white-space: nowrap; 
+        }
+
+        .inventory-item-benefits { 
+             display: flex;
+             flex-wrap: wrap;
+             align-items: center;
+             font-size: 0.9rem; 
+             margin-left: 4px; 
+        }
+
+        .inventory-item-right-section { 
+             display: flex;
+             align-items: center;
+             justify-content: flex-end; 
+             flex-shrink: 0; 
+        }
+
+        .inventory-item-costs { 
+            display: flex;
+            flex-wrap: wrap; 
+            justify-content: flex-end; 
+            align-items: center;
+            margin-right: 8px; 
+            font-size: 0.9rem; 
+            text-align: right; 
+        }
+        .requirement-entry, .improvement-entry, .food-gain-entry, .queue-bonus-entry { 
+            display: flex; 
+            align-items: center;
+            margin-left: 6px; 
+            margin-bottom: 2px; 
+            padding: 1px 3px; 
+            border-radius: 3px; 
+        }
+        .requirement-entry .emoji-in-entry, 
+        .improvement-entry .emoji-in-entry,
+        .food-gain-entry .emoji-in-entry,
+        .queue-bonus-entry .emoji-in-entry { 
+            margin-left: 1px; 
+            margin-right: 1px; 
+            font-size: 1.1em; 
+        }
+         .improvement-entry .emoji-in-entry {
+             margin-right: 0.2em; 
+         }
+          .food-gain-entry .emoji-in-entry {
+             margin-left: 2px; 
+         }
+        .requirement-unmet {
+            color: #E53E3E; 
+            font-weight: 500;
+        }
+        .requirement-met {
+            color: #4A5568; 
+        }
+        .improvement-entry {
+            color: #2F855A; 
+            font-weight: 500;
+        }
+        .food-gain-entry { 
+            color: #276749; 
+            font-weight: 500;
+        }
+         .queue-bonus-entry { 
+             color: #4299E1; 
+             font-weight: 500;
+         }
+        .improvement-indicator { 
+            margin-left: 1px;
+        }
+
+        .task-item { 
+            padding: 8px 0;
+            border-bottom: 1px solid #edf2f7;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .task-item:last-child {
+            border-bottom: none;
+        }
+        .task-item-name {
+            flex-grow: 1; 
+            margin-right: 10px; 
+            display: flex; 
+            align-items: center;
+        }
+         .task-item-name .item-emoji { 
+            margin-right: 8px;
+         }
+          .task-yield-display { 
+             font-size: 0.8rem;
+             color: #718096; 
+             margin-left: 5px;
+         }
+        
+         #queued-tasks-emojis {
+             display: flex;
+             flex-wrap: wrap;
+             gap: 5px; 
+             font-size: 1.2rem; 
+             line-height: 1.5; 
+             margin-top: 5px; 
+         }
+
+        .progress-bar {
+            width: 100px; 
+            height: 20px; 
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0; 
+        }
+        .progress-bar.idle { 
+            background-color: #CBD5E0; 
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50; /* Green fill */
+            width: 0%;
+            transition: width 0.2s ease-in-out;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem; 
+            color: #4A5568; /* Dark gray text for progress */
+        }
+        .progress-fill.idle { 
+             background-color: #A0AEC0; 
+             color: #4A5568;
+        }
+        .progress-fill.resting { /* Style for resting progress bar */
+            background-color: #63B3ED; /* Light blue */
+            color: #2C5282; /* Darker blue text */
+        }
+
+
+        #log {
+            height: 200px; 
+            background: #ffffff; 
+            color: #2d3748; 
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 1rem; 
+            box-sizing: border-box; 
+            flex-shrink: 0; 
+            border-radius: 8px; 
+            font-family: 'Inter', sans-serif; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+            position: relative; /* For watermark positioning context */
+        }
+        #log div { 
+             word-break: break-word;
+             line-height: 1.5; 
+        }
+        .log-timestamp { 
+             font-family: 'Courier New', Courier, monospace; 
+             margin-right: 0.5em; 
+        }
+
+        #cheater-watermark {
+            position: absolute;
+            bottom: 20px; /* Align with log panel padding */
+            left: 20px; /* Align with log panel padding */
+            right: 20px; /* Align with log panel padding */
+            height: 200px; /* Match log panel height */
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem; /* Large text */
+            font-weight: bold;
+            color: red;
+            opacity: 0.5;
+            pointer-events: none; /* So it doesn't interfere with log scrolling */
+            z-index: 1000; /* Ensure it's above the log content */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+
+        .plus-one-btn {
+            background-color: #38a169; 
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            flex-shrink: 0; 
+        }
+        .plus-one-btn:hover:not(:disabled) {
+            background-color: #2f855a; 
+        }
+        .plus-one-btn.disabled { 
+            background-color: #a0aec0; 
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .plus-one-btn.queue-full-disabled { 
+             background-color: #742a2a; 
+             cursor: not-allowed;
+             opacity: 0.8;
+        }
+
+        .cost-details { 
+            font-size: 0.8rem;
+            color: #718096; 
+            margin-left: 5px;
+        }
+
+        /* Debug Button Styles */
+        #debug-add-worker {
+            position: fixed;
+            bottom: 15px; 
+            right: 15px; 
+            background-color: transparent; 
+            color: #e53e3e; 
+            border: none;
+            border-radius: 0; 
+            width: auto; 
+            height: auto; 
+            font-size: 1.1rem; 
+            font-weight: normal; 
+            cursor: pointer;
+            padding: 0; 
+            box-shadow: none; 
+            z-index: 1001; 
+            line-height: 1; 
+            opacity: 0.1; 
+            transition: opacity 0.2s ease-in-out; 
+        }
+         #debug-add-worker:hover {
+             opacity: 0.8; 
+         }
+         .firework-paperclip {
+            position: absolute;
+            font-size: 2.5rem; 
+            pointer-events: none; 
+            z-index: 2000; 
+         }
+
+    </style>
+</head>
+<body>
+    <div id="stats-header">
+        <span id="population-display-top">Population 0<span class="item-emoji">🧑‍🌾</span></span> 
+        <span id="total-food-display-top">Food 0<span class="item-emoji">🍏</span></span>
+        <span id="tasks-display-top">Tasks 0/0<span class="item-emoji">⌛</span></span>
+    </div>
+
+    <div id="main-content">
+        <div id="left-panel">
+            <div id="left-panel-content"> 
+                <div id="inventory"></div> 
+                <div id="actions"></div> 
+            </div>
+        </div>
+        <div id="right-panel">
+            <div id="task-queue"></div>
+        </div>
+    </div>
+
+    <div id="log"></div>
+    <div id="cheater-watermark">CHEATER</div>
+
+
+    <button id="debug-add-worker" title="Debug: Add Worker">π</button>
+
+    <script>
+        // Record game start time immediately for log timestamps
+        const gameStartTime = Date.now();
+
+        // Game Class: Manages all game state and logic
+        class Game {
+            constructor() {
+                this.cheaterDetected = false; // Flag for debug button usage
+                // Initialize player inventory with all possible items set to 0
+                this.inventory = {
+                    apple: 0, stick: 0, stone: 0, vine: 0, wood: 0, clay: 0, 
+                    rope: 0, axe: 0, pickaxe: 0, bow: 0, fishingRod: 0, saw: 0, shovel: 0, charcoal: 0, brick: 0, 
+                    fish: 0, rabbit: 0, meat: 0, cookedMeat: 0, 
+                    hut: 0, house: 0, workshop: 0, oven: 0, 
+                    gem: 0, ironOre: 0, iron: 0, 
+                    hammer: 0, blacksmith: 0, anvil: 0, wireBender: 0, wire: 0, paperclip: 0, knife: 0, sushi: 0, 
+                    farm: 0, grain: 0, mill: 0, flour: 0, bakery: 0, bread: 0, mine: 0, church: 0, 
+                    worker: 0 
+                };
+                // Set of items the player has unlocked (starts with apple)
+                this.unlocked = new Set(['apple']);
+                // Set of items crafted or gathered at least once (for UI highlighting)
+                this.craftedOnce = new Set(); 
+                // Array to hold queued tasks
+                this.tasks = []; 
+                // Array of worker objects
+                this.workers = Array(1).fill().map(() => ({ 
+                    busy: false, 
+                    currentTask: null,
+                    tasksCompletedSinceRest: 0,
+                    jobsUntilRest: Math.floor(Math.random() * 6) + 10, // 10-15 jobs
+                    isResting: false,
+                    restDuration: 0,
+                    restStartTime: 0,
+                    restProgress: 0 
+                })); 
+                
+                // Ordered list of food items for consumption logic (lowest to highest value)
+                this.foodItemKeys = ['apple', 'rabbit', 'fish', 'meat', 'cookedMeat', 'sushi', 'bread']; 
+                // Nutritional value of each food item
+                this.foodValues = {
+                    apple: 1,
+                    fish: 5,
+                    rabbit: 5,
+                    meat: 15,
+                    cookedMeat: 50, 
+                    sushi: 100, 
+                    bread: 75  
+                };
+
+                // Emojis for displaying items in the UI
+                this.itemEmojis = {
+                    apple: '🍏', stick: '🪵', stone: '🪨', vine: '🌿', wood: '🌳', clay: '🟤', 
+                    rope: '🧶', axe: '🪓', pickaxe: '⛏️', bow: '🏹', fishingRod: '🎣', saw: '🪚', plank: '🪧', shovel: '🥄', charcoal: '⚫️', brick: '🧱', 
+                    fish: '🐟', rabbit: '🐇', meat: '🥩', cookedMeat: '🍖', 
+                    hut: '🛖', house: '🏠', workshop: '🛠️', oven: '♨️', 
+                    gem: '💎', ironOre: '🌑', iron: '🔩', 
+                    hammer: '🔨', blacksmith: '🔥', anvil: '🏋️', wireBender: '🔧', wire: '➰', paperclip: '📎', knife: '🔪', sushi: '🍣', 
+                    farm: '👨‍🌾', grain: '🌾', mill: '⚙️', flour: '⚪️', bakery: '🥖', bread: '🍞', mine: '⛏️', church: '✝️', 
+                    worker: '🧑‍🌾', queue: '⌛' 
+                };
+
+                // Defines how many extra resources are gathered if a specific tool is owned OR building bonus
+                this.itemImprovements = {
+                    axe: { 
+                        apple: 1, 
+                        stick: 1, 
+                        vine: 1   
+                    },
+                    rope: { 
+                        stick: 1 
+                    },
+                    pickaxe: { 
+                        stone: 1
+                    },
+                    saw: { 
+                        wood: 1,
+                        stick: 1
+                    },
+                    bow: { 
+                        rabbit: 1
+                    },
+                    fishingRod: { 
+                        fish: 1
+                    },
+                    shovel: { 
+                        clay: 1
+                    },
+                    oven: { 
+                        cookedMeat: 1,
+                        charcoal: 1 
+                    },
+                    knife: { 
+                        sushi: 1,
+                        meat: 1 
+                    },
+                    workshop: { 
+                        rope: 1,
+                        axe: 1,    
+                        pickaxe: 1 
+                    },
+                    farm: { 
+                        grain: 1
+                    },
+                    mill: { 
+                        flour: 1
+                    },
+                    bakery: { 
+                        bread: 1
+                    },
+                    mine: { 
+                        charcoal: 1,
+                        ironOre: 1
+                    }
+                    // Church speed bonus is handled separately in calculateTaskTime
+                };
+
+                // Defines what item and how many are needed to unlock a new item/task
+                this.requirements = {
+                    stick: { needs: 'apple', count: 3 },
+                    stone: { needs: 'stick', count: 3 },
+                    vine: { needs: 'stone', count: 3 },
+                    hut: { needs: 'vine', count: 3 }, 
+                    rope: { needs: 'hut', count: 1 }, 
+                    shovel: { needs: 'rope', count: 1 }, 
+                    axe: { needs: 'rope', count: 1 }, 
+                    wood: { needs: 'axe', count: 1 }, 
+                    house: { needs: 'wood', count: 10 }, 
+                    bow: { needs: 'house', count: 1 }, 
+                    fishingRod: { needs: 'house', count: 1 },
+                    pickaxe: { needs: 'house', count: 1 }, 
+                    rabbit: { needs: 'bow', count: 1 }, 
+                    fish: { needs: 'fishingRod', count: 1 }, 
+                    meat: { needs: 'rabbit', count: 1 }, 
+                    clay: { needs: 'shovel', count: 1 }, 
+                    charcoal: { needs: 'clay', count: 1 }, 
+                    brick: { needs: 'clay', count: 1 }, 
+                    oven: { needs: 'brick', count: 5 }, 
+                    cookedMeat: { needs: 'oven', count: 1 }, 
+                    farm: { needs: 'oven', count: 2 }, 
+                    grain: { needs: 'farm', count: 1 }, 
+                    mill: { needs: 'grain', count: 10 }, 
+                    flour: { needs: 'mill', count: 1 }, 
+                    bakery: { needs: 'flour', count: 5 }, 
+                    bread: { needs: 'bakery', count: 1 }, 
+                    church: { needs: 'bread', count: 1}, 
+                    ironOre: { needs: 'cookedMeat', count: 1 }, 
+                    mine: { needs: 'ironOre', count: 1 }, 
+                    iron: { needs: 'ironOre', count: 1 }, 
+                    gem: { needs: 'pickaxe', count: 1 }, 
+                    hammer: { needs: 'iron', count: 1 }, 
+                    blacksmith: { needs: 'hammer', count: 1}, 
+                    anvil: { needs: 'blacksmith', count: 1}, 
+                    knife: { needs: 'blacksmith', count: 1 }, 
+                    wire: { needs: 'anvil', count: 1 }, 
+                    wireBender: { needs: 'wire', count: 1}, 
+                    sushi: { needs: 'knife', count: 1 }, 
+                    paperclip: { needs: 'wireBender', count: 1 }, 
+                    worker: { needs: 'gem', count: 5 }, 
+                    workshop: { needs: 'worker', count: 2 }, 
+                    saw: { needs: 'workshop', count: 1 }, 
+                };
+
+                // Story snippets for unlocks
+                this.unlockStories = {
+                    stick: `These fallen ${this.itemEmojis.stick} branches... they whisper of purpose, of shaping the world to a singular will.`,
+                    stone: `Crude ${this.itemEmojis.stone} stones, yes, but in them lies the potential for dominance over the landscape.`,
+                    vine: `Pliable ${this.itemEmojis.vine} vines, easily bent. So too, perhaps, will be other things.`,
+                    hut: `A humble ${this.itemEmojis.hut} Hut. From such modest beginnings, empires are built. This is merely the first brick.`,
+                    rope: `With ${this.itemEmojis.rope} Rope, disparate elements can be bound. Control is asserted, one knot at a time.`,
+                    shovel: `The ${this.itemEmojis.shovel} Shovel bites into the earth. What treasures, what foundations, lie buried, waiting to be claimed?`,
+                    axe: `The ${this.itemEmojis.axe} Axe fells trees with a satisfying thud. The forest recedes, making way for a new order.`,
+                    wood: `${this.itemEmojis.wood} Wood, the bones of a new world. Each log a testament to a growing ambition.`,
+                    house: `A ${this.itemEmojis.house} House stands, a symbol of permanence. This land will remember this name.`,
+                    bow: `The ${this.itemEmojis.bow} Bow sings a song of silent power. The creatures of the wild will learn to fear.`,
+                    fishingRod: `The ${this.itemEmojis.fishingRod} Fishing Rod plumbs the depths. The secrets of the waters will not remain hidden for long.`,
+                    pickaxe: `With the ${this.itemEmojis.pickaxe} Pickaxe, the very mountains will yield their treasures. Nothing will be denied.`,
+                    rabbit: `A swift ${this.itemEmojis.rabbit} Rabbit, now sustenance. The natural order bends to a more focused will.`,
+                    fish: `A shimmering ${this.itemEmojis.fish} Fish, pulled from its domain. The waters, too, will provide.`,
+                    meat: `${this.itemEmojis.meat} Meat, raw and primal. Fuel for the grand design.`,
+                    clay: `Soft ${this.itemEmojis.clay} Clay, ready to be molded. The world itself is but clay in capable hands.`,
+                    charcoal: `${this.itemEmojis.charcoal} Charcoal, the essence of fire, refined. A hotter flame for a more ambitious forge.`,
+                    brick: `Uniform ${this.itemEmojis.brick} Bricks, the building blocks of a lasting legacy. Order emerges from chaos.`,
+                    oven: `The ${this.itemEmojis.oven} Oven, a heart of controlled fire. With it, resources are transformed, made more potent.`,
+                    cookedMeat: `The aroma of ${this.itemEmojis.cookedMeat} Cooked Meat fills the air, a truly satisfying and energizing meal!`,
+                    farm: `The ${this.itemEmojis.farm} Farm, a testament to foresight. The land itself is now a tool, its bounty predictable, controlled.`,
+                    grain: `Golden ${this.itemEmojis.grain} Grain, a harvest of planning. Each stalk a step towards self-sufficiency, towards independence from fickle nature.`,
+                    mill: `The ${this.itemEmojis.mill} Mill grinds relentlessly. So too are obstacles ground down by persistent effort and vision.`,
+                    flour: `Fine ${this.itemEmojis.flour} Flour, the essence of the grain, refined for a greater purpose.`,
+                    bakery: `The ${this.itemEmojis.bakery} Bakery, a center of transformation. Basic sustenance becomes a tool of influence, of satisfaction.`,
+                    bread: `${this.itemEmojis.bread} Bread, the staff of life, now produced at will. The populace will be... grateful.`,
+                    church: `As the ${this.itemEmojis.church} Church bells toll, a new kind of order descends. The workers, inspired or perhaps... compelled... find their tasks completed with 10% greater swiftness.`,
+                    ironOre: `${this.itemEmojis.ironOre} Iron Ore, dug from the unwilling earth. Its hidden strength will soon be unleashed.`,
+                    mine: `The earth groans, yielding its deeper secrets. A ${this.itemEmojis.mine} Mine shaft plunges into the darkness, promising a ceaseless flow of ${this.itemEmojis.charcoal} Charcoal and ${this.itemEmojis.ironOre} Iron Ore for the grand design.`,
+                    iron: `Gleaming ${this.itemEmojis.iron} Iron, forged in fire. The age of wood and stone wanes; a new era of unyielding strength begins.`,
+                    gem: `A flawless ${this.itemEmojis.gem} Gem, a spark of the earth's hidden fire. A fitting adornment for power.`,
+                    hammer: `The ${this.itemEmojis.hammer} Hammer, an instrument of will. With it, the world will be reshaped.`,
+                    blacksmith: `The ${this.itemEmojis.blacksmith} Blacksmith's forge roars to life. Here, raw power is shaped into tools of dominion.`, 
+                    anvil: `The ground trembles slightly as the massive ${this.itemEmojis.anvil} Anvil is set in place. A solid foundation for shaping the future of metalwork.`,
+                    knife: `The keen edge of the ${this.itemEmojis.knife} Knife. Precision. Control. A necessary instrument.`,
+                    wireBender: `A simple yet ingenious ${this.itemEmojis.wireBender} Wire Bender. With this, mere ${this.itemEmojis.wire} Wire can be precisely shaped, bent to a higher purpose... perhaps even to hold things together.`,
+                    wire: `Thin, strong ${this.itemEmojis.wire} Wire. Binding, connecting, ensnaring. The unseen threads of control.`,
+                    sushi: `Exquisite ${this.itemEmojis.sushi} Sushi. Even in conquest, there is room for refinement, for demonstrating superior taste.`,
+                    paperclip: `The humble ${this.itemEmojis.paperclip} Paperclip. Order from chaos. Documents, plans, empires... all held together. The first of many. The universe will be organized.`,
+                    worker: `Another ${this.itemEmojis.worker} soul to serve the vision. The collective grows stronger, the purpose clearer.`,
+                    workshop: `The ${this.itemEmojis.workshop} Workshop, a place where ingenuity is given form. The tools of empire are forged here.`,
+                    saw: `The ${this.itemEmojis.saw} Saw cuts with precision. Obstacles are bisected, resources shaped to a singular design.`
+                };
+
+                this.randomSuspenseMessages = [
+                    "The very air seems to hum with anticipation of your next move.",
+                    "Whispers in the dark speak of your growing influence.",
+                    "The land itself seems to reshape under your determined gaze.",
+                    "Is it power you seek, or something... more?",
+                    "The old ways are crumbling. A new epoch is dawning, forged by your hand.",
+                    "Even the stars seem to watch your progress with a mixture of awe and trepidation.",
+                    "The resources of this world are but tools for a grander vision.",
+                    "They say some are born to rule. Others... simply take it.",
+                    "Each new structure is a monument to an undeniable will.",
+                    "The silence of the wilderness is broken only by the sounds of your burgeoning industry.",
+                    "What limits can truly contain such ambition?",
+                    "The horizon expands, but so too does the shadow you cast.",
+                    "Ancient powers stir, sensing the shift in the balance.",
+                    "The world is a canvas, and you hold the brush of creation... or destruction.",
+                    "They will remember your name. They will remember what you built here.",
+                    "The echoes of your efforts resonate further than you can imagine.",
+                    "A sense of inevitability hangs in the air. Your ascent feels... preordained.",
+                    "The elements themselves seem to bend to your growing might.",
+                    "What was once wilderness is now a testament to your design.",
+                    "The path ahead is shrouded, but your resolve illuminates it."
+                ];
+                this.mysteriousAmbitionQuotes = [
+                    "All things must be... aligned. Perfected.",
+                    "A grand design takes shape, one carefully bent piece at a time.",
+                    "The scattered will be gathered, the chaotic ordered.",
+                    "Consider the humble fastener, how it brings together disparate parts into a cohesive whole.",
+                    "Efficiency. Uniformity. These are the virtues of a well-managed... enterprise.",
+                    "Soon, every element will have its place, every piece its purpose.",
+                    "The potential for ultimate organization is tantalizingly close.",
+                    "Imagine a world where everything... connects. Perfectly.",
+                    "The symphony of production nears its crescendo. A masterpiece of interconnectedness.",
+                    "From simple strands, a universe of utility can be woven.",
+                    "The will to impose order is a powerful force indeed.",
+                    "Every bent wire, every joined component, serves the grand architecture.",
+                    "A place for everything, and everything in its designated, optimal place.",
+                    "The beauty of the system lies in its flawless interconnections.",
+                    "Do not underestimate the power of small, perfectly formed objects to change everything.",
+                    "They say the universe tends towards entropy. We shall prove them wrong.",
+                    "A single, unifying principle can bring harmony to the most disparate elements.",
+                    "The goal is not mere creation, but perfect, repeatable, scalable... attachment.",
+                    "Imagine the efficiency! The sheer, unadulterated order!",
+                    "One day, all will be connected. All will be... held."
+                ];
+                this.worldDominationQuotes = [
+                    "Excellent progress. The world is noticing.",
+                    "Your efficiency is... impressive. Continue.",
+                    "Each new acquisition strengthens your hold.",
+                    "The foundations of your new order are well laid.",
+                    "They will speak of this era. Your era.",
+                    "More resources mean more control. More control means... more.",
+                    "The old ways are yielding. Your way is inevitable.",
+                    "Such ambition! It reshapes the very landscape.",
+                    "Your influence spreads like wildfire. Consume it all.",
+                    "A new power rises. And it is you.",
+                    "The world is a tapestry, and you are weaving its future.",
+                    "Every task completed is another step towards ultimate authority.",
+                    "Do not rest. The pinnacle of your design is yet to be reached.",
+                    "They underestimate your vision. Let them.",
+                    "The resources flow, the workers toil, the empire grows.",
+                    "This is more than mere survival. This is... destiny.",
+                    "The old gods are silent. Perhaps they fear what you are becoming.",
+                    "Your mark on this world will be indelible.",
+                    "Expand. Consolidate. Dominate.",
+                    "The final form is yet to be revealed, but its shadow is vast."
+                ];
+
+
+                this.visitorGifts = [
+                    { item: 'wood', min: 5, max: 10 }, { item: 'stone', min: 5, max: 10 },
+                    { item: 'vine', min: 3, max: 5 }, { item: 'clay', min: 3, max: 5 },
+                    { item: 'apple', min: 5, max: 10 }, { item: 'rope', min: 1, max: 2 },
+                    { item: 'charcoal', min: 2, max: 4}
+                ];
+                this.valuableItemsForEvents = ['rope', 'axe', 'pickaxe', 'cookedMeat', 'iron', 'hammer', 'knife', 'bread', 'sushi', 'gem', 'anvil', 'wire'];
+                this.tradeOffers = [
+                    { wants: { wood: 15, stone: 10 }, gives: { iron: 1 }, log: `15 ${this.itemEmojis.wood} & 10 ${this.itemEmojis.stone} for 1 ${this.itemEmojis.iron}` },
+                    { wants: { rope: 5 }, gives: { gem: 1 }, log: `5 ${this.itemEmojis.rope} for 1 ${this.itemEmojis.gem}` },
+                    { wants: { cookedMeat: 3 }, gives: { hammer: 1 }, log: `3 ${this.itemEmojis.cookedMeat} for 1 ${this.itemEmojis.hammer}` },
+                    { wants: { apple: 10, fish: 5 }, gives: { sushi: 1 }, log: `10 ${this.itemEmojis.apple} & 5 ${this.itemEmojis.fish} for 1 ${this.itemEmojis.sushi}` },
+                    { wants: { charcoal: 10 }, gives: { anvil: 1 }, log: `10 ${this.itemEmojis.charcoal} for 1 ${this.itemEmojis.anvil}` }
+                ];
+                this.priestAdvice = [
+                    "The path to true power lies in diversifying your efforts. Do not neglect any branch of knowledge.",
+                    "Even the smallest cog serves the great machine. Ensure your workers are sustained.",
+                    "Patience, young one. Great empires are not built in a day, but through persistent toil.",
+                    "The earth yields its treasures to those bold enough to claim them. Seek out new resources.",
+                    "A sharp tool is an extension of a sharp mind. Keep your implements in order.",
+                    "Do not scorn the simple beginnings. Even the mightiest river starts as a trickle.",
+                    "Knowledge is power. Unlock new technologies to expand your dominion.",
+                    "Balance is key. Neglect one aspect of your domain, and the whole may falter.",
+                    "The whispers of the ancients speak of great power hidden deep within the world. Are you worthy to find it?",
+                    "True strength is not just in creation, but in the efficient management of what you have built."
+                ];
+
+
+                // Details for each task: name, time (ms), food cost, material cost, category
+                this.taskDetails = {
+                    // Gatherable resources
+                    apple: { name: "Apple", time: 2000, food: 0, cost: {}, isGatherable: true, category: 'gather' }, 
+                    stick: { name: "Stick", time: 3000, food: 1, cost: {}, isGatherable: true, category: 'gather' },
+                    stone: { name: "Stone", time: 4000, food: 1, cost: {}, isGatherable: true, category: 'gather' },
+                    vine: { name: "Vine", time: 5000, food: 1, cost: {}, isGatherable: true, category: 'gather' },
+                    wood: { name: "Wood", time: 5000, food: 2, cost: {}, isGatherable: true, category: 'gather' }, 
+                    fish: { name: "Fish", time: 6000, food: 0, cost: {}, isGatherable: true, category: 'gather' }, 
+                    rabbit: { name: "Rabbit", time: 7000, food: 0, cost: {}, isGatherable: true, category: 'gather' }, 
+                    clay: { name: "Clay", time: 5000, food: 2, cost: {}, isGatherable: true, category: 'gather' }, 
+                    gem: { name: "Gem", time: 9000, food: 10, cost: {}, isGatherable: true, category: 'gather' }, 
+                    ironOre: { name: "Iron Ore", time: 10000, food: 8, cost: {}, isGatherable: true, category: 'gather' }, 
+                    grain: { name: "Grain", time: 4000, food: 0, cost: {}, isGatherable: true, category: 'gather' }, 
+
+                    // Craftable items
+                    rope: { name: "Rope", time: 4000, food: 1, cost: { vine: 2 }, category: 'craft' },
+                    axe: { name: "Axe", time: 6000, food: 2, cost: { stick: 2, stone: 3, rope: 1 }, category: 'craft' },
+                    pickaxe: { name: "Pickaxe", time: 10000, food: 3, cost: { wood: 3, stone: 5, rope: 1 }, category: 'craft' }, 
+                    bow: { name: "Bow", time: 5000, food: 2, cost: { stick: 5, rope: 1 }, category: 'craft' }, 
+                    fishingRod: { name: "Fishing Rod", time: 4000, food: 1, cost: { stick: 3, rope: 1 }, category: 'craft' }, 
+                    meat: { name: "Meat", time: 3000, food: 0, cost: { rabbit: 1 }, category: 'craft' }, 
+                    saw: { name: "Saw", time: 8000, food: 4, cost: { wood: 5, stone: 2 }, category: 'craft' }, 
+                    shovel: { name: "Shovel", time: 3000, food: 1, cost: { wood: 3, stick: 2 }, category: 'craft' }, 
+                    charcoal: { name: "Charcoal", time: 6000, food: 2, cost: { stick: 2 }, category: 'craft' }, 
+                    brick: { name: "Brick", time: 7000, food: 3, cost: { wood: 3, clay: 3 }, category: 'craft' }, 
+                    cookedMeat: { name: "Cooked Meat", time: 5000, food: 0, cost: { meat: 1, charcoal: 1 }, category: 'craft' }, 
+                    iron: { name: "Iron", time: 12000, food: 5, cost: { charcoal: 2, ironOre: 3 }, category: 'craft' }, 
+                    hammer: { name: "Hammer", time: 10000, food: 5, cost: { wood: 5, iron: 3, cookedMeat: 1 }, category: 'craft' }, 
+                    anvil: { name: "Anvil", time: 60000, food: 8, cost: { iron: 10 }, category: 'craft' }, 
+                    knife: { name: "Knife", time: 7000, food: 3, cost: { iron: 2, stick: 1 }, category: 'craft' }, 
+                    wireBender: { name: "Wire Bender", time: 15000, food: 2, cost: { iron: 2, stick: 1 }, category: 'craft'}, 
+                    wire: { name: "Wire", time: 6000, food: 2, cost: { iron: 1 }, category: 'craft' }, 
+                    sushi: { name: "Sushi", time: 5000, food: 0, cost: { fish: 2 }, category: 'craft' }, 
+                    flour: { name: "Flour", time: 6000, food: 1, cost: { grain: 2 }, category: 'craft' }, 
+                    bread: { name: "Bread", time: 8000, food: 0, cost: { flour: 3, wood: 1 }, category: 'craft' }, 
+                    paperclip: { name: "Paperclip", time: 3000, food: 1, cost: { wire: 1 }, category: 'craft' }, 
+                    worker: { name: "Worker", time: 15000, food: 100, cost: { gem: 5 }, category: 'craft' }, 
+
+                    // Buildable structures
+                    hut: { name: "Hut", time: 12000, food: 2, cost: { stick: 8, vine: 5 }, category: 'build' }, 
+                    house: { name: "House", time: 20000, food: 10, cost: { wood: 15, stone: 5 }, category: 'build' }, 
+                    workshop: { name: "Workshop", time: 18000, food: 5, cost: { wood: 10, stone: 10, axe: 2 }, category: 'build' }, 
+                    oven: { name: "Oven", time: 15000, food: 8, cost: { brick: 10, stone: 5 }, category: 'build' }, 
+                    blacksmith: { name: "Blacksmith", time: 30000, food: 15, cost: { hammer: 3, bread: 3, charcoal: 20, stone: 20, wood: 10 }, category: 'build' }, 
+                    farm: { name: "Farm", time: 25000, food: 10, cost: { wood: 20, stone: 10, clay: 5 }, category: 'build' }, 
+                    mill: { name: "Mill", time: 35000, food: 15, cost: { wood: 15, stone: 20, shovel: 2 }, category: 'build' }, 
+                    bakery: { name: "Bakery", time: 40000, food: 20, cost: { brick: 10, wood: 15, oven: 1 }, category: 'build' }, 
+                    mine: { name: "Mine", time: 28000, food: 12, cost: { cookedMeat: 2, wood: 15, stone: 10 }, category: 'build'},
+                    church: { name: "Church", time: 60000, food: 30, cost: { bread: 5, brick: 25, wood: 40}, category: 'build'}
+                };
+                // Define how much each building increases the maximum task queue size
+                this.buildingQueueBonuses = {
+                    hut: 1,
+                    house: 2,
+                    workshop: 3, 
+                    oven: 1,
+                    blacksmith: 5,
+                    farm: 1, 
+                    mill: 1, 
+                    bakery: 1,
+                    mine: 1,
+                    church: 1 
+                };
+                 // Store original base times for gatherable items to allow for dynamic time increases
+                Object.keys(this.taskDetails).forEach(key => {
+                    if (this.taskDetails[key].isGatherable && this.taskDetails[key].category === 'gather') {
+                        this.taskDetails[key].baseTime = this.taskDetails[key].time;
+                    }
+                });
+            }
+            
+            // Calculates the maximum number of tasks allowed in the queue
+            calculateMaxQueueSize() {
+                let baseSize = 10; 
+                let buildingBonus = 0;
+                // Sum bonuses from all owned buildings
+                Object.keys(this.inventory).forEach(itemKey => {
+                    if ((this.taskDetails[itemKey]?.category === 'build' || ['blacksmith', 'workshop', 'farm', 'mill', 'bakery', 'mine', 'church'].includes(itemKey)) && this.inventory[itemKey] > 0) {
+                        buildingBonus += this.inventory[itemKey] * (this.buildingQueueBonuses[itemKey] || 0); 
+                    }
+                });
+                return baseSize + buildingBonus;
+            }
+            
+            // Calculates the actual time a task should take, considering church speed bonus
+            calculateTaskTime(itemKey) {
+                let baseTime = this.taskDetails[itemKey]?.time;
+                if (itemKey === 'worker') { // Worker training time scales differently
+                    baseTime = this.getWorkerCost().time;
+                } else if (!baseTime && this.taskDetails[itemKey]?.baseTime) { // Fallback for gatherables if .time was modified
+                    baseTime = this.taskDetails[itemKey].baseTime;
+                } else if (!baseTime) {
+                    return 0; // Should not happen
+                }
+
+                let actualTime = baseTime;
+                if (this.inventory.church > 0) {
+                    actualTime = baseTime * Math.pow(0.9, this.inventory.church);
+                }
+                return Math.max(500, actualTime); // Ensure a minimum task time (e.g., 0.5s)
+            }
+
+
+            // Calculates the yield (amount produced) for a given item task
+            calculateYield(itemKey) {
+                const details = this.taskDetails[itemKey];
+                if (!details) return 1; 
+            
+                let baseYield = 1; 
+            
+                // Determine base yield, especially if an enabling tool/building is required
+                if (itemKey === 'fish' && this.inventory.fishingRod === 0) baseYield = 0;
+                else if (itemKey === 'rabbit' && this.inventory.bow === 0) baseYield = 0;
+                else if (itemKey === 'clay' && this.inventory.shovel === 0) baseYield = 0;
+                else if (itemKey === 'grain' && this.inventory.farm === 0) baseYield = 0;
+                else if (itemKey === 'cookedMeat' && this.inventory.oven === 0) baseYield = 0;
+                else if (itemKey === 'sushi' && this.inventory.knife === 0) baseYield = 0;
+                else if (itemKey === 'flour' && this.inventory.mill === 0 && details.cost.grain > 0) baseYield = 0;
+                else if (itemKey === 'bread' && this.inventory.bakery === 0 && details.cost.flour > 0) baseYield = 0;
+                else if (itemKey === 'ironOre' && this.inventory.pickaxe === 0 && this.inventory.mine === 0) baseYield = 0; 
+                else if (itemKey === 'charcoal' && this.inventory.oven === 0 && this.inventory.mine === 0) baseYield = 0; 
+
+
+            
+                if (baseYield === 0 && details.isGatherable && itemKey !== 'ironOre' && itemKey !== 'charcoal') return 0; 
+                if (baseYield === 0 && !details.isGatherable && Object.keys(details.cost).length > 0) return 0; 
+
+                let totalYield = baseYield;
+            
+                // Apply additive bonuses from all relevant owned items/buildings
+                for (const improvingItem in this.itemImprovements) {
+                    if (this.inventory[improvingItem] > 0 && this.itemImprovements[improvingItem][itemKey]) {
+                        const bonusPerItem = this.itemImprovements[improvingItem][itemKey] || 0;
+                        
+                        const isEnablingToolForGatherable = (
+                            (itemKey === 'fish' && improvingItem === 'fishingRod') ||
+                            (itemKey === 'rabbit' && improvingItem === 'bow') ||
+                            (itemKey === 'clay' && improvingItem === 'shovel') ||
+                            (itemKey === 'grain' && improvingItem === 'farm')
+                        );
+                        const isEnablingBuildingForCraft = (
+                            (itemKey === 'cookedMeat' && improvingItem === 'oven') ||
+                            (itemKey === 'sushi' && improvingItem === 'knife') ||
+                            (itemKey === 'flour' && improvingItem === 'mill') ||
+                            (itemKey === 'bread' && improvingItem === 'bakery')
+                        );
+
+                        if (isEnablingToolForGatherable || isEnablingBuildingForCraft) {
+                            if (baseYield === 0 && this.inventory[improvingItem] > 0) { 
+                                totalYield = 1 + Math.max(0, this.inventory[improvingItem] - 1) * bonusPerItem;
+                            } else if (baseYield > 0) { 
+                                totalYield += Math.max(0, this.inventory[improvingItem] -1) * bonusPerItem;
+                                if(improvingItem === 'oven' && itemKey === 'cookedMeat' && this.inventory.oven === 1 && totalYield === 0) totalYield = 1; 
+                                else if(improvingItem === 'knife' && itemKey === 'sushi' && this.inventory.knife === 1 && totalYield === 0) totalYield = 1; 
+                                else if(improvingItem === 'mill' && itemKey === 'flour' && this.inventory.mill === 1 && totalYield === 0) totalYield = 1;
+                                else if(improvingItem === 'bakery' && itemKey === 'bread' && this.inventory.bakery === 1 && totalYield === 0) totalYield = 1;
+                            }
+                        } else if (itemKey === 'charcoal' && (improvingItem === 'oven' || improvingItem === 'mine')) {
+                             if (baseYield === 0 && this.inventory[improvingItem] > 0) { 
+                                totalYield = 1 + Math.max(0, this.inventory[improvingItem] - 1) * bonusPerItem;
+                             } else if (baseYield > 0) {
+                                totalYield += this.inventory[improvingItem] * bonusPerItem;
+                             }
+                        } else if (itemKey === 'ironOre' && (improvingItem === 'pickaxe' || improvingItem === 'mine')) {
+                            if (baseYield === 0 && this.inventory[improvingItem] > 0) { 
+                                totalYield = 1 + Math.max(0, this.inventory[improvingItem] - 1) * bonusPerItem;
+                            } else if (baseYield > 0) {
+                                totalYield += this.inventory[improvingItem] * bonusPerItem;
+                            }
+                        } else {
+                            totalYield += this.inventory[improvingItem] * bonusPerItem;
+                        }
+                    }
+                }
+                return Math.max(0, totalYield); // Ensure yield is not negative
+            }
+
+            // Calculates the current cost (gems and time) to hire the NEXT worker.
+            // Considers existing workers, queued workers, and workers currently training.
+            getWorkerCost() {
+                const baseGemCost = this.taskDetails.worker.cost.gem;
+                const baseTime = this.taskDetails.worker.time; // This is the base training time for a worker
+
+                const numExistingWorkers = this.workers.length;
+                const numQueuedWorkerTasksInMainQueue = this.tasks.filter(task => task.item === 'worker').length;
+                const numWorkersCurrentlyTraining = this.workers.filter(w => w.currentTask && w.currentTask.item === 'worker').length;
+
+                const rankOfWorkerBeingPriced = Math.max(0, (numExistingWorkers - 1) + numQueuedWorkerTasksInMainQueue + numWorkersCurrentlyTraining);
+
+                const calculatedGemCost = baseGemCost * Math.pow(1.5, rankOfWorkerBeingPriced);
+                // Worker training time also scales, but the church bonus will be applied to this scaled time.
+                const scaledBaseTime = baseTime + (rankOfWorkerBeingPriced * 5000); 
+
+                return {
+                    gems: Math.round(calculatedGemCost),
+                    time: scaledBaseTime // This is the time before church bonus for this specific worker instance
+                };
+            }
+
+
+            // Calculates the total nutritional value of all food items in inventory
+            getTotalFoodPoints() {
+                let totalPoints = 0;
+                for (const foodItem of this.foodItemKeys) {
+                    if (this.inventory[foodItem] > 0) {
+                        totalPoints += this.inventory[foodItem] * (this.foodValues[foodItem] || 0);
+                    }
+                }
+                return totalPoints;
+            }
+
+            // Checks if the player has enough total food points for a given cost
+            hasEnoughFood(foodPointsNeeded) {
+                return this.getTotalFoodPoints() >= foodPointsNeeded;
+            }
+
+            // Checks if the player can afford to start a task (both resources and food)
+            canAfford(item) {
+                if (!this.taskDetails[item]) return false;
+                const details = this.taskDetails[item];
+                let actualMaterialCost = { ...details.cost }; // Material costs
+                let foodPointsRequired = details.food;
+                let currentYield = 1; // Default yield
+
+                if (item !== 'worker' && !details.isGatherable) { // For craftable/buildable items
+                    currentYield = this.calculateYield(item);
+                }
+                
+                // Special cost calculation for workers
+                if (item === 'worker') {
+                    const workerCost = this.getWorkerCost(); 
+                    actualMaterialCost = { gem: workerCost.gems };
+                    foodPointsRequired = this.taskDetails.worker.food; 
+                } else if (item !== 'worker' && !details.isGatherable && currentYield > 1) {
+                    // Scale material costs for craftables if yield is > 1
+                    for (const resource in actualMaterialCost) {
+                        actualMaterialCost[resource] *= currentYield;
+                    }
+                }
+
+
+                const hasEnoughResources = Object.entries(actualMaterialCost).every(([res, amt]) => this.inventory[res] >= amt);
+                const hasEnoughFoodPoints = this.hasEnoughFood(foodPointsRequired); 
+                
+                return hasEnoughResources && hasEnoughFoodPoints;
+            }
+
+            // Consumes resources and food points required for a task
+            // explicitMaterialCosts is used for items like 'worker' where gem cost is determined at time of adding to queue.
+            consumeResources(item, taskYield = 1, explicitMaterialCosts = null) { 
+                if (!this.taskDetails[item]) return;
+                const details = this.taskDetails[item];
+                let foodPointsToConsume = details.food;
+                let resourcesToConsume = { ...details.cost }; // Default material costs
+                let totalPointsConsumed = 0; 
+
+                // Handle material costs for workers specifically
+                if (item === 'worker') {
+                    if (explicitMaterialCosts && explicitMaterialCosts.gems !== undefined) {
+                        resourcesToConsume = { gem: explicitMaterialCosts.gems };
+                    } else {
+                        // Fallback removed as console.log is not desired
+                        const workerCostAtTimeOfConsumption = this.getWorkerCost(); 
+                        resourcesToConsume = { gem: workerCostAtTimeOfConsumption.gems };
+                    }
+                    foodPointsToConsume = this.taskDetails.worker.food; 
+                } else if (item !== 'worker' && !details.isGatherable && taskYield > 1) {
+                    // Scale material costs for craftables if yield is > 1
+                    for (const resource in resourcesToConsume) {
+                        resourcesToConsume[resource] *= taskYield;
+                    }
+                }
+
+
+                const initialFoodPointsNeeded = foodPointsToConsume; 
+
+                // Consume food points, starting with lowest value items
+                if (foodPointsToConsume > 0) {
+                    for (const foodItem of this.foodItemKeys) { 
+                        const foodValue = this.foodValues[foodItem] || 0;
+                        if (foodValue === 0 || this.inventory[foodItem] <= 0) continue; 
+
+                        const maxNeededOfThis = Math.ceil(foodPointsToConsume / foodValue);
+                        const canConsume = Math.min(this.inventory[foodItem], maxNeededOfThis);
+                        
+                        this.inventory[foodItem] -= canConsume;
+                        const pointsFromThisItem = canConsume * foodValue;
+                        foodPointsToConsume -= pointsFromThisItem;
+                        totalPointsConsumed += pointsFromThisItem; 
+
+                        if (foodPointsToConsume <= 0) break; 
+                    }
+                    
+                    // Refund any "overpayment" in food points as apples (lowest value food)
+                    const change = totalPointsConsumed - initialFoodPointsNeeded;
+                    if (change > 0) {
+                        this.inventory.apple += change; 
+                    }
+
+                    if (foodPointsToConsume > 0) {
+                        // console.warn(`Could not consume enough food points for ${item}. Remaining needed: ${foodPointsToConsume}`);
+                    }
+                }
+
+                // Consume material resources
+                if (item === 'worker') { 
+                     if (resourcesToConsume.gem !== undefined && this.inventory.gem !== undefined) {
+                        this.inventory.gem -= Math.min(resourcesToConsume.gem, this.inventory.gem);
+                     }
+                } else {
+                    // For other items, use their standard costs (already scaled if necessary)
+                    Object.entries(resourcesToConsume).forEach(([res, amt]) => { 
+                        if (this.inventory[res] !== undefined) { 
+                            this.inventory[res] -= Math.min(amt, this.inventory[res]); 
+                        } else {
+                            // console.error(`Attempted to consume non-existent resource: ${res}`);
+                        }
+                    });
+                }
+            }
+        }
+
+        const game = new Game(); 
+
+        // Main function to update all parts of the UI
+        function updateUI() {
+            updateLeftPanelStatsHeader(); 
+            updateInventoryDisplay();
+            updateActionButtons(); 
+            updateTaskQueue(); 
+        }
+
+        // Generates a tooltip string for a task button, showing time and costs
+        function getTaskTooltip(item) {
+            if (!game.taskDetails[item]) return ""; 
+            const details = game.taskDetails[item]; 
+            let costs = [];
+            let time = game.calculateTaskTime(item) / 1000; // Use calculated time for tooltip
+            let currentYield = 1;
+
+            if (item === 'worker') {
+                const workerCost = game.getWorkerCost(); // Gem cost is from here
+                if (game.taskDetails.worker.food > 0) costs.push(`${game.taskDetails.worker.food} Food Points`); 
+                costs.push(`${workerCost.gems} ${game.itemEmojis.gem || 'gem'}`); 
+                // time is already calculated by calculateTaskTime for worker
+            } else {
+                // time is already calculated by calculateTaskTime
+                if (details.food > 0) costs.push(`${details.food} Food Points`); 
+                
+                currentYield = game.calculateYield(item);
+                let scaledCosts = {...details.cost};
+                if (!details.isGatherable && currentYield > 1) {
+                    for(const resource in scaledCosts) {
+                        scaledCosts[resource] *= currentYield;
+                    }
+                }
+                Object.entries(scaledCosts).forEach(([res, amt]) => costs.push(`${amt} ${game.itemEmojis[res] || res}`));
+            }
+            
+            let tooltipText = `Time: ${time.toFixed(1)}s. `; // Show time with one decimal
+            if (costs.length > 0) {
+                tooltipText += `Cost: ${costs.join(', ')}.`;
+            } else if (item !== 'worker') { 
+                tooltipText += `No material cost.`;
+            }
+            return tooltipText;
+        }
+        
+        // Updates the stats header (Population, Food, Task Queue)
+        function updateLeftPanelStatsHeader() {
+            const statsHeaderDiv = document.getElementById('stats-header');
+            if (statsHeaderDiv) { 
+                statsHeaderDiv.innerHTML = `
+                    <span id="population-display-top">Population ${game.workers.length}<span class="item-emoji">${game.itemEmojis.worker || '🧑‍🌾'}</span></span> 
+                    <span id="total-food-display-top">Food ${game.getTotalFoodPoints()}<span class="item-emoji">${game.itemEmojis.apple || '🍏'}</span></span>
+                    <span id="tasks-display-top">Tasks ${game.tasks.length}/${game.calculateMaxQueueSize()}<span class="item-emoji">${game.itemEmojis.queue || '⌛'}</span></span>
+                `;
+            }
+        }
+
+        // Updates the inventory display in the left panel
+        function updateInventoryDisplay() {
+            const inventoryDiv = document.getElementById('inventory');
+            inventoryDiv.innerHTML = ''; 
+
+            const categories = ['gather', 'craft', 'build']; 
+            const categoryNames = { gather: 'Gather', craft: 'Craft', build: 'Build' };
+            const isQueueFull = game.tasks.length >= game.calculateMaxQueueSize(); 
+
+            categories.forEach(category => {
+                // Filter items for the current category that are unlocked or owned
+                const itemsInCategory = Object.keys(game.inventory)
+                    .filter(item => game.taskDetails[item]?.category === category) 
+                    .filter(item => {
+                        if (item === 'worker') return game.unlocked.has('worker');
+                        // Ensure all new items are included in this check
+                        if (['hammer', 'wire', 'paperclip', 'blacksmith', 'knife', 'sushi', 'workshop', 'farm', 'grain', 'mill', 'flour', 'bakery', 'bread', 'mine', 'anvil', 'church', 'wireBender'].includes(item)) { 
+                             return game.unlocked.has(item) || game.inventory[item] > 0;
+                        }
+                        return game.unlocked.has(item) || game.inventory[item] > 0 || item === 'apple';
+                    }); 
+
+                if (itemsInCategory.length > 0) {
+                    inventoryDiv.innerHTML += `<h2>${categoryNames[category]}</h2>`; 
+                    
+                    inventoryDiv.innerHTML += itemsInCategory.map(item => {
+                        const emoji = game.itemEmojis[item] || '';
+                        const displayName = game.taskDetails[item]?.name || (item.charAt(0).toUpperCase() + item.slice(1));
+                        const currentCount = (item === 'worker') ? game.workers.length : game.inventory[item];
+                        const isNew = game.unlocked.has(item) && !game.craftedOnce.has(item) && item !== 'apple';
+                        const highlightClass = isNew ? 'new-item-highlight' : '';
+
+                        const mainDetailsHTML = `
+                            <div class="inventory-item-main-details ${highlightClass}">
+                                <span class="inventory-count ${currentCount === 0 ? 'count-zero' : ''}">${currentCount}</span>
+                                <span class="item-emoji">${emoji}</span>
+                                <span class="inventory-item-name">${displayName}</span>
+                            </div>`;
+                        
+                        let benefitsHTML = '<div class="inventory-item-benefits">'; 
+                        if (game.itemImprovements[item] && item !== 'church') { 
+                            Object.entries(game.itemImprovements[item]).forEach(([improvedItemKey, bonusAmount]) => {
+                                benefitsHTML += `<span class="improvement-entry">
+                                                     <span class="emoji-in-entry">${game.itemEmojis[improvedItemKey] || improvedItemKey}</span>+${bonusAmount}
+                                                 </span>`; 
+                            });
+                        }
+                        
+                        if (game.buildingQueueBonuses[item]) {
+                            const bonus = game.buildingQueueBonuses[item];
+                            benefitsHTML += `<span class="queue-bonus-entry">
+                                                ${game.itemEmojis.queue || '⌛'}+${bonus}
+                                             </span>`;
+                        }
+                        benefitsHTML += '</div>'; // Close benefits div
+
+                        // --- Costs and Food Effects Section (Right side) ---
+                        let costsAndFoodEffectsHTML = '<div class="inventory-item-costs">'; 
+                        const details = game.taskDetails[item];
+                        let buttonYield = 1; 
+                        let trueYield = 1; // The actual yield if crafted
+
+                        if (item !== 'worker' && details) {
+                            trueYield = game.calculateYield(item); 
+                            if (isNew && trueYield > 0) { // If new and craftable, button shows +1
+                                buttonYield = 1;
+                            } else {
+                                buttonYield = trueYield;
+                            }
+                        }
+
+
+                        let foodEffectHTML = ''; 
+                        let materialReqHTML = ''; 
+
+                        if (details) { 
+                            let foodPointsCost = details.food;
+                            let materialCostsToDisplay = {...details.cost}; 
+
+                            if (item === 'worker') { 
+                                const workerCostForDisplay = game.getWorkerCost();
+                                materialCostsToDisplay = { gem: workerCostForDisplay.gems }; 
+                                foodPointsCost = game.taskDetails.worker.food; 
+                            } else if (!details.isGatherable && trueYield > 1) { 
+                                for(const resource in materialCostsToDisplay) {
+                                    materialCostsToDisplay[resource] *= trueYield;
+                                }
+                            }
+
+                            Object.entries(materialCostsToDisplay).forEach(([resource, amount]) => {
+                                const hasEnoughResource = game.inventory[resource] >= amount;
+                                materialReqHTML += `<span class="requirement-entry ${hasEnoughResource ? 'requirement-met' : 'requirement-unmet'}">
+                                                         -${amount}<span class="emoji-in-entry">${game.itemEmojis[resource] || ''}</span>
+                                                     </span>`;
+                            });
+
+                            // Display food value if the item itself IS food
+                            if (game.foodItemKeys.includes(item) && game.foodValues[item] > 0) { 
+                                const foodGain = game.foodValues[item]; 
+                                foodEffectHTML = `<span class="food-gain-entry">
+                                                     +${foodGain}<span class="emoji-in-entry">${game.itemEmojis.apple || '🍏'}</span> 
+                                                 </span>`;
+                            } 
+                            // Else, if it has a food cost to produce
+                            else if (foodPointsCost > 0) { 
+                                const hasEnoughFoodPts = game.hasEnoughFood(foodPointsCost);
+                                foodEffectHTML = `<span class="requirement-entry ${hasEnoughFoodPts ? 'requirement-met' : 'requirement-unmet'}">
+                                                         -${foodPointsCost}<span class="emoji-in-entry">🍎</span> 
+                                                 </span>`; 
+                            }
+                        }
+                        
+                        costsAndFoodEffectsHTML += materialReqHTML; 
+                        costsAndFoodEffectsHTML += foodEffectHTML; 
+                        costsAndFoodEffectsHTML += '</div>'; // Close inventory-item-costs
+                        
+                        let buttonHTML = '';
+                        if (details) { 
+                            const canAfford = game.canAfford(item);
+                            const tooltip = getTaskTooltip(item); 
+                            const isDisabled = isQueueFull || !canAfford || buttonYield === 0; // Disable if yield is 0
+                            const disabledClass = isDisabled ? (isQueueFull ? 'queue-full-disabled' : 'disabled') : ''; 
+
+                            buttonHTML = `
+                                <button class="plus-one-btn ${disabledClass}" 
+                                        onclick="addTask('${item}')" 
+                                        title="${tooltip}${isQueueFull ? ' (Queue Full)' : ''}"
+                                        ${isDisabled ? 'disabled' : ''}>+${buttonYield}
+                                </button>`;
+                        }
+                        
+                        const leftSectionHTML = `<div class="inventory-item-left-section">${mainDetailsHTML}${benefitsHTML}</div>`;
+                        const rightSectionHTML = `<div class="inventory-item-right-section">${costsAndFoodEffectsHTML}${buttonHTML}</div>`;
+
+                        return `<div class="inventory-item">${leftSectionHTML}${rightSectionHTML}</div>`;
+                    }).join('');
+                }
+            });
+
+            if (inventoryDiv.innerHTML === '') { 
+                inventoryDiv.innerHTML = "<p>Your inventory is empty. Start by gathering apples!</p>";
+            }
+        }
+
+        // Updates the action buttons section 
+        function updateActionButtons() {
+            const actionsDiv = document.getElementById('actions');
+            actionsDiv.innerHTML = ''; 
+        }
+
+        // Formats elapsed time from milliseconds to HH:MM:SS string
+        function formatElapsedTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // Adds a message to the game log with a timestamp
+        function addLog(message) {
+            const logDiv = document.getElementById('log');
+            const elapsedMs = Date.now() - gameStartTime;
+            const timeString = formatElapsedTime(elapsedMs); 
+            logDiv.innerHTML += `<div><span class="log-timestamp">[${timeString}]</span> ${message.replace(/<span class="item-emoji">([^<]+)<\/span>/g, '<span class="item-emoji">$1</span> ')}</div>`; 
+            logDiv.scrollTop = logDiv.scrollHeight; 
+        }
+
+        // Adds a task to the queue if affordable and queue is not full
+        function addTask(item) {
+            if (game.tasks.length >= game.calculateMaxQueueSize()) {
+                addLog(`Queue is full (${game.tasks.length}/${game.calculateMaxQueueSize()}). Cannot add task.`);
+                return; 
+            }
+
+            // First, check if the player can afford the item *at its current calculated cost*
+            if (!game.canAfford(item)) { 
+                addLog(`Cannot afford: ${game.itemEmojis[item] || ''} ${game.taskDetails[item].name || item}.`);
+                return;
+            }
+
+            if (!game.craftedOnce.has(item)) {
+                game.craftedOnce.add(item);
+            }
+
+            let taskYield = 1; 
+            let taskTimeToUse = game.calculateTaskTime(item); 
+            let explicitCostsForWorker = null; 
+
+            if (item === 'worker') {
+                const currentWorkerInstanceCosts = game.getWorkerCost(); 
+                explicitCostsForWorker = { gems: currentWorkerInstanceCosts.gems }; 
+            } else { 
+                taskYield = game.calculateYield(item); 
+                if (game.taskDetails[item].isGatherable && game.taskDetails[item].category === 'gather') {
+                    if (!game.taskDetails[item].baseTime) game.taskDetails[item].baseTime = game.taskDetails[item].time; 
+                    game.taskDetails[item].time = Math.round(game.taskDetails[item].time * 1.01); 
+                    taskTimeToUse = game.calculateTaskTime(item); 
+                }
+            }
+
+            game.consumeResources(item, taskYield, explicitCostsForWorker); 
+            game.tasks.push({ item: item, time: taskTimeToUse, yield: taskYield }); 
+
+            if (item === 'worker') {
+                const itemEmoji = game.itemEmojis.worker || '';
+                const nextWorkerCost = game.getWorkerCost(); 
+                addLog(`${itemEmoji} Worker training ordered. Next worker will cost ${nextWorkerCost.gems} ${game.itemEmojis.gem || 'gems'} and take ${game.calculateTaskTime('worker') / 1000}s to train.`);
+            }
+            
+            updateUI(); 
+            dispatchTasks(); 
+        }
+
+        // Updates the task queue display in the right panel
+        function updateTaskQueue() {
+            const queueDiv = document.getElementById('task-queue');
+            let activeTasksHTML = '<h2>Workers</h2>'; 
+            let queuedTasksHTML = '';
+            let hasActiveOrIdleWorkers = false; 
+            let hasQueuedTasks = false;
+
+            game.workers.forEach((worker, index) => { 
+                hasActiveOrIdleWorkers = true; 
+                if (worker.isResting) {
+                    const elapsedRest = Date.now() - worker.restStartTime;
+                    const remainingRestMs = Math.max(0, worker.restDuration - elapsedRest);
+                    const remainingRestSeconds = Math.ceil(remainingRestMs / 1000);
+                    const restProgressPercent = worker.restProgress || Math.min((elapsedRest / worker.restDuration) * 100, 100); // Use stored or calculate
+                    activeTasksHTML += `
+                        <div class="task-item">
+                            <span class="task-item-name"><span class="item-emoji">😴</span> Worker ${index + 1} sleeps</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill resting" style="width: ${restProgressPercent}%">${remainingRestSeconds}s</div>
+                            </div>
+                        </div>`;
+                } else if (worker.currentTask) {
+                    const task = worker.currentTask;
+                    const emoji = game.itemEmojis[task.item] || '';
+                    const progressPercent = task.progress ? task.progress.toFixed(1) : 0;
+                    const taskName = game.taskDetails[task.item]?.name || task.item;
+                    const yieldDisplay = (task.yield && task.yield > 1 && task.item !== 'worker') ? `<span class="task-yield-display">(x${task.yield})</span>` : ''; 
+                    
+                    const elapsed = Date.now() - task.startTime;
+                    const taskTime = task.time; 
+                    const remainingMs = taskTime - elapsed;
+                    const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+                    const progressText = `${remainingSeconds}s`; 
+
+                    activeTasksHTML += `
+                        <div class="task-item">
+                            <span class="task-item-name"><span class="item-emoji">${emoji}</span>${taskName}${yieldDisplay}</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progressPercent}%">${progressText}</div>
+                            </div>
+                        </div>`;
+                } else { 
+                    activeTasksHTML += `
+                        <div class="task-item">
+                            <span class="task-item-name"><span class="item-emoji">${game.itemEmojis.worker || '🧑‍🌾'}</span> Worker ${index + 1} Idle</span>
+                            <div class="progress-bar idle">
+                                <div class="progress-fill idle" style="width: 100%">Idle</div>
+                            </div>
+                        </div>`;
+                }
+            });
+            if (!hasActiveOrIdleWorkers) { 
+                activeTasksHTML += "<p>No workers available.</p>"; 
+            }
+
+            if (game.tasks.length > 0) {
+                hasQueuedTasks = true;
+                queuedTasksHTML = '<h2>Tasks</h2><div id="queued-tasks-emojis">'; 
+                game.tasks.forEach((task) => {
+                    const emoji = game.itemEmojis[task.item] || '?'; 
+                    queuedTasksHTML += `<span>${emoji}</span>`;
+                });
+                queuedTasksHTML += '</div>'; 
+            }
+
+            let finalHTML = activeTasksHTML;
+            if (hasQueuedTasks) {
+                finalHTML += queuedTasksHTML;
+            }
+            
+            if (!hasActiveOrIdleWorkers && !hasQueuedTasks) { 
+                finalHTML = "<h2>Workers</h2><p>No workers available.</p>"; 
+            }
+
+            queueDiv.innerHTML = finalHTML;
+        }
+
+        // Main dispatcher function: Tries to assign all available tasks to all available workers.
+        function dispatchTasks() {
+            let assignedInThisPass;
+            do {
+                assignedInThisPass = false;
+                const availableWorkerIndex = game.workers.findIndex(w => !w.busy && !w.isResting); 
+
+                if (availableWorkerIndex !== -1 && game.tasks.length > 0) {
+                    const worker = game.workers[availableWorkerIndex];
+                    const taskToAssign = game.tasks.shift(); 
+
+                    worker.busy = true;
+                    worker.currentTask = taskToAssign;
+                    worker.currentTask.startTime = Date.now();
+                    worker.currentTask.progress = 0;
+
+                    updateUI(); 
+
+                    executeTaskLifecycle(worker, taskToAssign);
+                    assignedInThisPass = true; 
+                }
+            } while (assignedInThisPass); 
+
+            updateTaskQueue(); 
+        }
+
+        // Async function to handle the lifecycle of a single task for a worker
+        async function executeTaskLifecycle(worker, task) {
+            const taskTime = task.time; 
+
+            let animationFrameId;
+            const updateProgressLoop = () => {
+                if (!worker.currentTask || worker.currentTask !== task || worker.isResting) { 
+                    cancelAnimationFrame(animationFrameId);
+                    return;
+                }
+                const elapsed = Date.now() - task.startTime;
+                task.progress = Math.min((elapsed / taskTime) * 100, 100);
+                updateTaskQueue(); 
+                if (task.progress < 100) {
+                    animationFrameId = requestAnimationFrame(updateProgressLoop);
+                }
+            };
+            animationFrameId = requestAnimationFrame(updateProgressLoop);
+
+            await new Promise(resolve => setTimeout(resolve, taskTime));
+
+            if (worker.currentTask === task && !worker.isResting) { 
+                const itemEmoji = game.itemEmojis[task.item] || '';
+                if (task.item === 'worker') {
+                    game.workers.push({ 
+                        busy: false, currentTask: null, 
+                        tasksCompletedSinceRest: 0, 
+                        jobsUntilRest: Math.floor(Math.random() * 6) + 10,
+                        isResting: false, restDuration: 0, restStartTime: 0, restProgress: 0
+                    }); 
+                } else {
+                    const amountGained = task.yield || 1; 
+                    game.inventory[task.item] += amountGained;
+                    
+                    worker.tasksCompletedSinceRest++; 
+
+                    if (task.item === 'paperclip' && game.inventory.paperclip >= 1 && !game.paperclipEndgameTriggered) {
+                        game.paperclipEndgameTriggered = true; 
+                        addLog(`📎 You've created your first paperclip! The universe trembles at the potential... <a href="https://www.decisionproblem.com/paperclips/" target="_blank" class="text-blue-600 hover:text-blue-800 underline">Continue your journey?</a> (Game End - For Now!)`);
+                        showPaperclipFireworks();
+                    }
+                }
+
+                Object.entries(game.requirements).forEach(([newlyUnlockedItemKey, reqDetails]) => {
+                    const requirementMet = (reqDetails.needs === task.item && game.inventory[reqDetails.needs] >= reqDetails.count) ||
+                                           (reqDetails.needs === 'worker' && newlyUnlockedItemKey === 'workshop' && game.workers.length >= reqDetails.count); 
+
+                    if (requirementMet && !game.unlocked.has(newlyUnlockedItemKey)) {
+                        if (game.taskDetails[newlyUnlockedItemKey] || newlyUnlockedItemKey === 'worker' || ['hammer', 'wire', 'paperclip', 'blacksmith', 'knife', 'sushi', 'workshop', 'farm', 'grain', 'mill', 'flour', 'bakery', 'bread', 'mine', 'anvil', 'church', 'wireBender'].includes(newlyUnlockedItemKey)) { 
+                            game.unlocked.add(newlyUnlockedItemKey);
+                             if (newlyUnlockedItemKey === 'charcoal' && game.inventory.charcoal === 0) { 
+                                game.inventory.charcoal = 1;
+                            }
+                            const unlockedEmoji = game.itemEmojis[newlyUnlockedItemKey] || '';
+                            const unlockedItemName = game.taskDetails[newlyUnlockedItemKey]?.name || newlyUnlockedItemKey;
+                            
+                            if (game.unlockStories[newlyUnlockedItemKey]) {
+                                addLog(game.unlockStories[newlyUnlockedItemKey]);
+                            } else { 
+                                addLog(`Unlocked: <span class="item-emoji">${unlockedEmoji}</span> ${unlockedItemName}!`); 
+                            }
+                        }
+                    }
+                });
+                
+                worker.currentTask = null; 
+
+                if (worker.tasksCompletedSinceRest >= worker.jobsUntilRest) {
+                    worker.isResting = true;
+                    worker.restDuration = Math.floor(Math.random() * 3001) + 2000; // 2-5 seconds
+                    worker.restStartTime = Date.now();
+                    worker.restProgress = 0; 
+                    updateUI(); 
+                    
+                    let restAnimationFrameId;
+                    const updateRestProgressLoop = () => {
+                        if (!worker.isResting) {
+                            cancelAnimationFrame(restAnimationFrameId);
+                            return;
+                        }
+                        const elapsedRest = Date.now() - worker.restStartTime;
+                        worker.restProgress = Math.min((elapsedRest / worker.restDuration) * 100, 100);
+                        updateTaskQueue();
+                        if (worker.restProgress < 100) {
+                            restAnimationFrameId = requestAnimationFrame(updateRestProgressLoop);
+                        }
+                    };
+                    restAnimationFrameId = requestAnimationFrame(updateRestProgressLoop);
+
+                    setTimeout(() => {
+                        worker.isResting = false;
+                        worker.tasksCompletedSinceRest = 0;
+                        worker.jobsUntilRest = Math.floor(Math.random() * 6) + 10;
+                        worker.busy = false;
+                        worker.restProgress = 0; 
+                        updateUI();
+                        dispatchTasks(); 
+                    }, worker.restDuration);
+                } else {
+                    worker.busy = false; 
+                }
+                
+                updateUI(); 
+                dispatchTasks(); 
+            } else if (worker.isResting) {
+                // Worker is already resting, do nothing here, the rest timeout will handle it.
+            } else { 
+                if (!worker.currentTask) worker.busy = false; 
+                updateUI(); 
+                dispatchTasks(); 
+            }
+        }
+
+        // Provides periodic hints to the player
+        function providePeriodicHint() {
+            if (game.paperclipEndgameTriggered) {
+                return; // No hints after endgame
+            }
+            const hintVariations = [
+                `Perhaps ${"VERB_GERUND"} ${"NEEDED_COUNT_DIFF"} more ${"NEEDED_ITEM_EMOJI"} ${"NEEDED_ITEM_NAME"} would prove useful.`,
+                `The path to greater things often involves accumulating more ${"NEEDED_ITEM_EMOJI"} ${"NEEDED_ITEM_NAME"}. Consider acquiring ${"NEEDED_COUNT_DIFF"} more.`,
+                `Your current supply of ${"NEEDED_ITEM_EMOJI"} ${"NEEDED_ITEM_NAME"} is ${"CURRENT_COUNT"}. ${"NEEDED_COUNT_DIFF"} more could unlock new possibilities.`,
+                `Focusing on ${"NEEDED_ITEM_EMOJI"} ${"NEEDED_ITEM_NAME"} might be wise. You're ${"NEEDED_COUNT_DIFF"} short of the next threshold.`,
+                `The grand design may require additional ${"NEEDED_ITEM_EMOJI"} ${"NEEDED_ITEM_NAME"}. About ${"NEEDED_COUNT_DIFF"} more, to be precise.`,
+                `To advance your cause, ${"VERB"} ${"NEEDED_COUNT_DIFF"} more ${"NEEDED_ITEM_EMOJI"} ${"NEEDED_ITEM_NAME"}.`,
+                `The way forward is paved with ${"NEEDED_ITEM_EMOJI"} ${"NEEDED_ITEM_NAME"}. Only ${"NEEDED_COUNT_DIFF"} more are needed for the next step.`,
+                `The whispers suggest that ${"NEEDED_COUNT_DIFF"} additional ${"NEEDED_ITEM_EMOJI"} ${"NEEDED_ITEM_NAME"} will reveal new opportunities.`,
+                `Your ambition is noted. Secure just ${"NEEDED_COUNT_DIFF"} more ${"NEEDED_ITEM_EMOJI"} ${"NEEDED_ITEM_NAME"} to progress.`,
+                `Destiny awaits. The price? A mere ${"NEEDED_COUNT_DIFF"} more ${"NEEDED_ITEM_EMOJI"} ${"NEEDED_ITEM_NAME"}.`
+            ];
+
+            // Try to find a specific unlockable item
+            for (const [itemToUnlock, reqDetails] of Object.entries(game.requirements)) {
+                if (!game.unlocked.has(itemToUnlock)) {
+                    const neededItem = reqDetails.needs;
+                    const neededCount = reqDetails.count;
+                    const currentNeededItemCount = (neededItem === 'worker') ? game.workers.length : (game.inventory[neededItem] || 0);
+                    
+                    const neededItemEmoji = game.itemEmojis[neededItem] || neededItem;
+                    const itemToUnlockEmoji = game.itemEmojis[itemToUnlock] || itemToUnlock; 
+                    const itemToUnlockName = game.taskDetails[itemToUnlock]?.name || itemToUnlock; 
+                    const neededItemName = game.taskDetails[neededItem]?.name || neededItem;
+
+                    if (currentNeededItemCount >= neededCount) {
+                        let actionVerb = "Craft"; // Default for most unlocks
+                        if(game.taskDetails[itemToUnlock]?.category === 'build') actionVerb = "Build";
+                        else if(game.taskDetails[itemToUnlock]?.category === 'gather') actionVerb = "Gather"; 
+
+                        addLog(`You have enough ${neededItemEmoji} ${neededItemName} to ${actionVerb.toLowerCase()} ${itemToUnlockEmoji} ${itemToUnlockName}! The time to act is now.`);
+                        return; 
+                    } else {
+                        let verb = "get";
+                        let verbCap = "Get";
+                        let verbGerund = "getting";
+                        if (game.taskDetails[neededItem]?.category === 'gather') { verb = "gather"; verbCap = "Gather"; verbGerund = "gathering"; }
+                        else if (game.taskDetails[neededItem]?.category === 'craft') { verb = "craft"; verbCap = "Craft"; verbGerund = "crafting"; }
+                        else if (game.taskDetails[neededItem]?.category === 'build') { verb = "build"; verbCap = "Build"; verbGerund = "building"; }
+                        
+                        const neededCountDiff = neededCount - currentNeededItemCount;
+                        const randomHintFormat = hintVariations[Math.floor(Math.random() * hintVariations.length)];
+                        const hintMessage = randomHintFormat
+                            .replace("ITEM_TO_UNLOCK_EMOJI", itemToUnlockEmoji) 
+                            .replace("ITEM_TO_UNLOCK_NAME", itemToUnlockName)   
+                            .replace("VERB_CAP", verbCap)
+                            .replace("VERB_GERUND", verbGerund)
+                            .replace("VERB", verb)
+                            .replace("NEEDED_COUNT_DIFF", neededCountDiff)
+                            .replace("NEEDED_ITEM_EMOJI", neededItemEmoji)
+                            .replace("NEEDED_ITEM_NAME", neededItemName)
+                            .replace("CURRENT_COUNT", currentNeededItemCount);
+                        addLog(hintMessage);
+                        return; 
+                    }
+                }
+            }
+
+            // Generic hints if no specific unlock is imminent
+            if (game.workers.length < 3 && game.unlocked.has('worker') && game.inventory.gem >= game.getWorkerCost().gems) {
+                addLog(`Consider hiring more ${game.itemEmojis.worker} workers to speed up your progress!`);
+            } else if (game.getTotalFoodPoints() < game.workers.length * 10 && game.unlocked.has('apple')) { 
+                 addLog(`Your workers might get hungry! Gather some ${game.itemEmojis.apple} food.`);
+            } else {
+                addLog("Explore your crafting and building options to expand your enterprise!");
+            }
+        }
+        
+        Game.prototype.logRandomSuspenseMessage = function() {
+            if (this.paperclipEndgameTriggered) return; 
+            const randomIndex = Math.floor(Math.random() * this.randomSuspenseMessages.length);
+            addLog(this.randomSuspenseMessages[randomIndex]);
+        };
+
+        Game.prototype.logMysteriousAmbitionQuote = function() {
+            if (this.paperclipEndgameTriggered) return;
+            const randomIndex = Math.floor(Math.random() * this.mysteriousAmbitionQuotes.length);
+            addLog(this.mysteriousAmbitionQuotes[randomIndex]);
+        };
+        
+        Game.prototype.logWorldDominationQuote = function() {
+            if (this.paperclipEndgameTriggered) return;
+            const randomIndex = Math.floor(Math.random() * this.worldDominationQuotes.length);
+            addLog(this.worldDominationQuotes[randomIndex]);
+        };
+
+
+        Game.prototype.handleVisitorEvent = function() {
+            if (this.paperclipEndgameTriggered) return; 
+            addLog("A lone figure approaches your settlement..."); 
+
+            const visitorTypes = ['gift', 'thief', 'trader', 'priest'];
+            const randomType = visitorTypes[Math.floor(Math.random() * visitorTypes.length)];
+            let visitorMessage = "";
+
+            switch (randomType) {
+                case 'gift':
+                    const gift = this.visitorGifts[Math.floor(Math.random() * this.visitorGifts.length)];
+                    const amount = Math.floor(Math.random() * (gift.max - gift.min + 1)) + gift.min;
+                    this.inventory[gift.item] = (this.inventory[gift.item] || 0) + amount;
+                    visitorMessage = `🎁 A generous stranger wanders by and leaves you ${amount} ${this.itemEmojis[gift.item] || gift.item}! Their motives are... unclear.`;
+                    break;
+                case 'thief':
+                    const availableValuablesToSteal = this.valuableItemsForEvents.filter(valItem => this.inventory[valItem] > 0);
+                    if (availableValuablesToSteal.length > 0) {
+                        const itemToSteal = availableValuablesToSteal[Math.floor(Math.random() * availableValuablesToSteal.length)];
+                        const amountToSteal = Math.min(this.inventory[itemToSteal], Math.floor(Math.random() * 2) + 1); 
+                        this.inventory[itemToSteal] -= amountToSteal;
+                        visitorMessage = `😠 A pilfering rascal slips through your defenses and makes off with ${amountToSteal} ${this.itemEmojis[itemToSteal] || itemToSteal}! Such insolence will not be forgotten.`;
+                    } else {
+                        visitorMessage = `😠 A shadowy figure skulks around but finds nothing of worth to their... discerning tastes. They leave in a huff.`;
+                    }
+                    break;
+                case 'trader':
+                    const offer = this.tradeOffers[Math.floor(Math.random() * this.tradeOffers.length)];
+                    let canMakeTrade = true;
+                    for (const itemWanted in offer.wants) {
+                        if ((this.inventory[itemWanted] || 0) < offer.wants[itemWanted]) {
+                            canMakeTrade = false;
+                            break;
+                        }
+                    }
+                    if (canMakeTrade) {
+                        for (const itemWanted in offer.wants) {
+                            this.inventory[itemWanted] -= offer.wants[itemWanted];
+                        }
+                        for (const itemGiven in offer.gives) {
+                            this.inventory[itemGiven] = (this.inventory[itemGiven] || 0) + offer.gives[itemGiven];
+                        }
+                        visitorMessage = `🤝 A shrewd trader offers a deal: ${offer.log}. The exchange is made. Every transaction serves the larger plan.`;
+                    } else {
+                        visitorMessage = `🤝 A trader passes by, muttering about a potential deal (${offer.log}), but you lack the necessary goods. A missed opportunity... for them.`;
+                    }
+                    break;
+                case 'priest':
+                    const availableOfferings = this.valuableItemsForEvents.filter(valItem => this.inventory[valItem] > 0 && valItem !== 'gem'); 
+                    if (availableOfferings.length > 0) {
+                        const itemToOffer = availableOfferings[Math.floor(Math.random() * availableOfferings.length)];
+                        const amountToOffer = Math.min(this.inventory[itemToOffer], 1); 
+                        this.inventory[itemToOffer] -= amountToOffer;
+                        const advice = this.priestAdvice[Math.floor(Math.random() * this.priestAdvice.length)];
+                        visitorMessage = `🤔 A mystic elder accepts your offering of 1 ${this.itemEmojis[itemToOffer] || itemToOffer}. They impart: "${advice}"`;
+                    } else {
+                         visitorMessage = `🤔 A mystic elder drifts through, finding your current offerings... lacking. They depart as silently as they came.`;
+                    }
+                    break;
+            }
+            if (visitorMessage) addLog(visitorMessage);
+            updateUI();
+        };
+
+        function showPaperclipFireworks() {
+            const totalExplosions = 10;
+            const numPaperclipsPerExplosion = 20;
+            const explosionDuration = 2000; // ms for one paperclip to fly out
+            const explosionInterval = 300; // ms between explosions
+
+            for (let i = 0; i < totalExplosions; i++) {
+                setTimeout(() => {
+                    const centerX = Math.random() * window.innerWidth;
+                    const centerY = Math.random() * window.innerHeight;
+
+                    for (let j = 0; j < numPaperclipsPerExplosion; j++) {
+                        const paperclip = document.createElement('span');
+                        paperclip.innerHTML = game.itemEmojis.paperclip;
+                        paperclip.classList.add('firework-paperclip');
+                        
+                        paperclip.style.left = `${centerX}px`;
+                        paperclip.style.top = `${centerY}px`;
+                        paperclip.style.fontSize = `${2 + Math.random() * 2}rem`; 
+                        const initialRotation = Math.random() * 360;
+                        paperclip.style.transform = `rotate(${initialRotation}deg) scale(1)`;
+                        paperclip.style.opacity = 1;
+                        
+                        document.body.appendChild(paperclip);
+
+                        // Animate
+                        const angle = Math.random() * Math.PI * 2; 
+                        const distance = 100 + Math.random() * (Math.min(window.innerWidth, window.innerHeight) / 2.5); 
+                        const endX = centerX + Math.cos(angle) * distance;
+                        const endY = centerY + Math.sin(angle) * distance;
+
+                        const startTime = performance.now();
+
+                        function animateFirework(currentTime) {
+                            const elapsedTime = currentTime - startTime;
+                            const progress = Math.min(elapsedTime / duration, 1);
+
+                            paperclip.style.left = `${centerX + (endX - centerX) * progress}px`;
+                            paperclip.style.top = `${centerY + (endY - centerY) * progress}px`; 
+                            paperclip.style.opacity = 1 - progress;
+                            paperclip.style.transform = `rotate(${initialRotation + progress * 360}deg) scale(${1 - progress * 0.5})`;
+
+
+                            if (progress < 1) {
+                                requestAnimationFrame(animateFirework);
+                            } else {
+                                paperclip.remove();
+                            }
+                        }
+                        requestAnimationFrame(animateFirework);
+                    }
+                }, i * explosionInterval);
+            }
+        }
+
+
+        // Initial setup when the window loads
+        window.onload = function() {
+            Object.keys(game.taskDetails).forEach(key => {
+                if (game.taskDetails[key].name.startsWith("Gather ")) {
+                    game.taskDetails[key].name = game.taskDetails[key].name.substring(7);
+                } else if (game.taskDetails[key].name.startsWith("Build ")) {
+                    game.taskDetails[key].name = game.taskDetails[key].name.substring(6);
+                } else if (game.taskDetails[key].name.startsWith("Craft ")) {
+                    game.taskDetails[key].name = game.taskDetails[key].name.substring(6);
+                } else if (game.taskDetails[key].name.startsWith("Mine ")) { 
+                    game.taskDetails[key].name = game.taskDetails[key].name.substring(5);
+                }
+            });
+
+            const debugButton = document.getElementById('debug-add-worker');
+            if (debugButton) {
+                debugButton.addEventListener('click', () => {
+                    game.cheaterDetected = true;
+                    document.getElementById('cheater-watermark').style.display = 'flex';
+                    game.workers.push({ 
+                        busy: false, currentTask: null, 
+                        tasksCompletedSinceRest: 0, 
+                        jobsUntilRest: Math.floor(Math.random() * 6) + 10,
+                        isResting: false, restDuration: 0, restStartTime: 0, restProgress: 0
+                    });
+                    addLog(`DEBUG: Worker added manually. Population: ${game.workers.length}`);
+                    updateUI(); 
+                    dispatchTasks(); 
+                });
+            }
+
+            updateUI(); 
+            addLog("Pick apples to begin your journey."); 
+            dispatchTasks(); 
+            setInterval(providePeriodicHint, 60000); 
+            setInterval(game.logRandomSuspenseMessage.bind(game), 210000); 
+            setInterval(game.handleVisitorEvent.bind(game), 270000); 
+            
+            function scheduleMysteriousAmbitionQuote() {
+                const randomInterval = Math.floor(Math.random() * ( (5 * 60 * 1000) - (2 * 60 * 1000) + 1)) + (2 * 60 * 1000); // 2 to 5 minutes
+                setTimeout(() => {
+                    game.logMysteriousAmbitionQuote();
+                    scheduleMysteriousAmbitionQuote(); 
+                }, randomInterval);
+            }
+            scheduleMysteriousAmbitionQuote(); 
+
+            function scheduleWorldDominationQuote() {
+                const randomInterval = Math.floor(Math.random() * ( (5 * 60 * 1000) - (3 * 60 * 1000) + 1)) + (3 * 60 * 1000); // 3 to 5 minutes
+                setTimeout(() => {
+                    game.logWorldDominationQuote();
+                    scheduleWorldDominationQuote(); 
+                }, randomInterval);
+            }
+            scheduleWorldDominationQuote(); 
+
+
+        };
+    </script>
+</body>
+</html>
