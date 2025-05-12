@@ -796,17 +796,9 @@
 			                const itemToSteal = stealableValuables[Math.floor(Math.random() * stealableValuables.length)];
 			                const amountToSteal = 1; // Since we know inventory[itemToSteal] > 1, stealing 1 is fine.
 			                this.inventory[itemToSteal] -= amountToSteal;
-			                visitorMessage = `😠 A pilfering rascal slips through your defenses and makes off with ${amountToSteal} ${this.itemEmojis[itemToSteal] || itemToSteal}! Thankfully, they left your last one.`;
+			                visitorMessage = `😠 A pilfering rascal slips through your defenses and makes off with ${amountToSteal} ${this.itemEmojis[itemToSteal] || itemToSteal}!`;
 			            } else {
-			                // Check if there were any valuables at all, even if only 1 of each
-			                const anyValuablesPresent = this.valuableItemsForEvents.some(valItem => (this.inventory[valItem] || 0) > 0);
-			                if (anyValuablesPresent) {
-			                    // If valuables are present, but all have a count of 1, the thief complains but doesn't steal.
-			                    visitorMessage = `😠 A pilfering rascal eyes your supplies. Seeing you only have one of each valuable item, they sneer and depart without taking your last precious pieces!`;
-			                } else {
-			                    // If no valuable items at all.
-			                    visitorMessage = `😠 A shadowy figure skulks around but finds nothing of worth... They leave in a huff.`;
-			                }
+		                    visitorMessage = `😠 A shadowy figure skulks around but finds nothing of worth... They leave in a huff.`;
 			            }
 			            break;
                     case 'trader':
