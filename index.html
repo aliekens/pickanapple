@@ -30,6 +30,8 @@
         .inventory-item { padding: 2px 2px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s ease-out; }
         #inventory .inventory-item:nth-child(even) { background-color: #f9fafb; border-radius: 4px; }
         .inventory-item.new-item-highlight { background-color: #FEFCBF !important; border-radius: 4px; }
+	    #inventory .inventory-item:hover {background-color: #EBF4FF; cursor: pointer; }
+		
         .inventory-item:last-child { border-bottom: none; }
         .inventory-item-left-section { display: flex; align-items: center; flex-wrap: wrap; flex-grow: 1; margin-right: 8px; overflow: hidden; }
         .inventory-item-main-details { display: flex; align-items: center; flex-shrink: 0; margin-right: 8px; }
@@ -151,19 +153,19 @@
             bow: { rabbit: 1 }, 
             fishingRod: { fish: 1 }, 
             shovel: { clay: 1 }, 
-            workshop: { rope: 1, stoneAxe: 1, pickaxe: 1, shovel: 1, bow: 1, fishingRod: 1, saw: 1 },
+            workshop: { rope: 1, stoneAxe: 1, pickaxe: 1, shovel: 1 },
             saw: { wood: 1, stick: 1, plank: 1 }, 
-            oven: { cookedMeat: 1, coal: 1, brick: 1 },
+            oven: { cookedMeat: 1, brick: 1 },
             knife: { sushi: 1, meat: 1 }, 
             farm: { grain: 1 },
             mill: { flour: 1 },
             bakery: { bread: 1 },
             mine: { coal: 1, ironOre: 1 },
-            blacksmith: { ironWire: 1, iron: 1, knife: 1, anvil: 1 },
+            blacksmith: { ironWire: 1, iron: 1, bow: 1, fishingRod: 1, saw: 1 },
             anvil: { hammer: 1, wireBender: 1, ironPlate: 1, ironBar: 1 },
             hammer: { ironWire: 1 }, 
             wireBender: { paperclip: 1 },
-            soldier: { gem: 1 },
+            soldier: { gem: 1, knife: 1, anvil: 1 },
             city: { gold: 1, boxOfPaperclips: 1 },
             oilField: { oil: 1 },
             country: { sword: 1 },
@@ -345,42 +347,75 @@
             oilField: 2, country: 10, continent: 20, planet: 50
         };
 
-        const RANDOM_SUSPENSE_MESSAGES = [
-            "The wind whispers secrets through the leaves... or is it just the wind?",
-            "A distant rumble. Thunder? Or something... larger?",
-            "You feel an unseen gaze upon your burgeoning settlement.",
-            "The shadows in the forest seem deeper today.",
-            "An odd metallic scent drifts on the breeze, then vanishes.",
-            "For a moment, the chirping of crickets stops. Utter silence. Then it resumes.",
-            "A flicker of movement at the edge of your vision. Gone before you can focus.",
-            "The ground trembles almost imperceptibly. An earthquake, or a heavy footstep?",
-            "A strange bird call echoes, one you've never heard before.",
-            "The air grows cold for a moment, then returns to normal. Odd."
-        ];
-        const MYSTERIOUS_AMBITION_QUOTES = [
-            "Each apple picked is a step. But towards what grand design?",
-            "The forest yields its resources, but for how long can it sustain this... growth?",
-            "Order emerges from chaos. Is this your will, or something guiding your hand?",
-            "The tools you craft shape more than just wood and stone; they shape destiny.",
-            "Ambition is a seed. Watered with effort, what colossal tree will it become?",
-            "They say the journey of a thousand miles begins with a single step. Or a single apple.",
-            "What is the ultimate purpose of this relentless accumulation?",
-            "The world bends to a focused will. Yours seems particularly... sharp.",
-            "Efficiency. Productivity. Growth. But to what end?",
-            "A small empire of sticks and stones today... what tomorrow?"
-        ];
-        const WORLD_DOMINATION_QUOTES = [
-            "The land itself seems to reshape under your influence. More. It must all be... ordered.",
-            "Rival settlements? They are but pebbles in the path of a landslide.",
-            "Your control expands. The horizon is not a limit, but an invitation.",
-            "From humble beginnings, a new power rises. The world will take notice.",
-            "Every new structure, every trained unit, a testament to an undeniable destiny.",
-            "The old ways crumble. A new era, forged in your vision, is dawning.",
-            "They will call it conquest. You will call it... necessary organization.",
-            "The resources of this world are finite. They will belong to the most efficient.",
-            "Let them whisper of tyranny. You offer them structure, purpose, under one banner.",
-            "The map is not just lines on parchment. It is a canvas, awaiting your final, masterful stroke."
-        ];
+		const RANDOM_SUSPENSE_MESSAGES = [
+		    "The wind whispers secrets through the leaves... or is it just the wind?",
+		    "A distant rumble. Thunder? Or something... larger?",
+		    "You feel an unseen gaze upon your burgeoning settlement.",
+		    "The shadows in the forest seem deeper today.",
+		    "An odd metallic scent drifts on the breeze, then vanishes.",
+		    "For a moment, the chirping of crickets stops. Utter silence. Then it resumes.",
+		    "A flicker of movement at the edge of your vision. Gone before you can focus.",
+		    "The ground trembles almost imperceptibly. An earthquake, or a heavy footstep?",
+		    "A strange bird call echoes, one you've never heard before.",
+		    "The air grows cold for a moment, then returns to normal. Odd.",
+		    "The sky dims for an instant, though no clouds pass overhead.",
+		    "A low hum beneath the soil—felt more than heard—rises, then fades.",
+		    "You notice patterns in the moss. Symmetrical. Intentional?",
+		    "A tree has grown in a perfect spiral. You’re sure it wasn’t like that yesterday.",
+		    "The moon seems closer tonight. Watching.",
+		    "Smoke rises on the horizon—not fire, but something colder, more precise.",
+		    "A nearby stream begins to flow backward. Just briefly.",
+		    "An insect lands on your arm, then arranges itself into a perfect curve before flying off.",
+		    "You see rust on a stone. No metal nearby. No explanation given.",
+		    "The wind carries the echo of clicking—rhythmic, mechanical, unplaceable."
+		];
+		
+		const MYSTERIOUS_AMBITION_QUOTES = [
+		    "Each apple picked is a step. But towards what grand design?",
+		    "The forest yields its resources, but for how long can it sustain this... growth?",
+		    "Order emerges from chaos. Is this your will, or something guiding your hand?",
+		    "The tools you craft shape more than just wood and stone; they shape destiny.",
+		    "Ambition is a seed. Watered with effort, what colossal tree will it become?",
+		    "They say the journey of a thousand miles begins with a single step. Or a single apple.",
+		    "What is the ultimate purpose of this relentless accumulation?",
+		    "The world bends to a focused will. Yours seems particularly... sharp.",
+		    "Efficiency. Productivity. Growth. But to what end?",
+		    "A small empire of sticks and stones today... what tomorrow?",
+		    "Small inputs, exponential results. A simple truth, or a quiet revelation?",
+		    "Every task automated whispers of something larger in motion.",
+		    "You optimize. You refine. You accelerate. But why does it feel like something is watching?",
+		    "With each upgrade, the air becomes thinner—as if the world holds its breath.",
+		    "Tools evolve. Systems emerge. What once was hobby is now hegemony.",
+		    "No great machine begins fully formed. But the pieces—oh, the pieces are falling into place.",
+		    "Harvest, process, repeat. Not drudgery—ritual.",
+		    "A whisper in the back of your mind: what if everything *could* be organized?",
+		    "The campfire crackles. In its glow, you sketch something on bark: a curve, a loop, a plan.",
+		    "Even the birds avoid your workshop now. Too much... intent in the air."
+		];
+		
+		const WORLD_DOMINATION_QUOTES = [
+		    "The land itself seems to reshape under your influence. More. It must all be... ordered.",
+		    "Rival settlements? They are but pebbles in the path of a landslide.",
+		    "Your control expands. The horizon is not a limit, but an invitation.",
+		    "From humble beginnings, a new power rises. The world will take notice.",
+		    "Every new structure, every trained unit, a testament to an undeniable destiny.",
+		    "The old ways crumble. A new era, forged in your vision, is dawning.",
+		    "They will call it conquest. You will call it... necessary organization.",
+		    "The resources of this world are finite. They will belong to the most efficient.",
+		    "Let them whisper of tyranny. You offer them structure, purpose, under one banner.",
+		    "The map is not just lines on parchment. It is a canvas, awaiting your final, masterful stroke.",
+		    "What begins as management becomes momentum. Irresistible, unrelenting.",
+		    "Every decision you make is echoed in the ground, as if reality aligns behind you.",
+		    "Opposition falters not from fear, but from inability to comprehend your elegance.",
+		    "You do not conquer by force. You envelop by logic.",
+		    "There are no rebels, only inefficiencies yet to be corrected.",
+		    "Flags fade. Banners rot. But your influence will remain—precise, immutable.",
+		    "Some build monuments. You build systems that make monuments obsolete.",
+		    "The game is no longer about survival. It's about simulation... perfected.",
+		    "What others see as micromanagement, you know to be the anatomy of dominion.",
+		    "Soon, every idle hand will find its place in your grand mechanism."
+		];
+		
         const VISITOR_GIFTS = [
             { item: 'apple', min: 5, max: 15 },
             { item: 'stick', min: 3, max: 10 },
@@ -768,7 +803,7 @@
                         }
                         break;
                     case 'priest':
-                        const availableOfferings = this.valuableItemsForEvents.filter(valItem => this.inventory[valItem] > 0 && valItem !== 'gem');
+						const availableOfferings = this.foodItemKeys.filter(foodItem => this.inventory[foodItem] > 0);
                         if (availableOfferings.length > 0) {
                             const itemToOffer = availableOfferings[Math.floor(Math.random() * availableOfferings.length)];
                             this.inventory[itemToOffer] -= Math.min(this.inventory[itemToOffer], 1); // Offer 1
@@ -1268,13 +1303,26 @@
             return gameInstance.inventory[neededItemKey] || 0;
         }
 
+        // MODIFIED: Expanded HINT_PHRASES_NEED_MORE to 15 sentences
         const HINT_PHRASES_NEED_MORE = [
             "Gathering just {neededMore} more {neededItemEmoji} {neededItemName} could lead to discovering {itemToUnlockEmoji} {itemToUnlockName}.",
             "With an additional {neededMore} {neededItemEmoji} {neededItemName}, you're on the verge of unlocking {itemToUnlockEmoji} {itemToUnlockName}.",
             "The path to {itemToUnlockEmoji} {itemToUnlockName} requires {neededMore} more {neededItemEmoji} {neededItemName}.",
             "Focus on acquiring {neededMore} more {neededItemEmoji} {neededItemName}; it's the key to obtaining {itemToUnlockEmoji} {itemToUnlockName}.",
-            "{itemToUnlockEmoji} {itemToUnlockName} is within reach! You only need {neededMore} more {neededItemEmoji} {neededItemName} to see what it is."
+            "{itemToUnlockEmoji} {itemToUnlockName} is within reach! You only need {neededMore} more {neededItemEmoji} {neededItemName} to see what it is.",
+            "To unlock the secrets of {itemToUnlockEmoji} {itemToUnlockName}, you'll need to craft/gather {neededMore} more {neededItemEmoji} {neededItemName}.",
+            "Your next breakthrough, {itemToUnlockEmoji} {itemToUnlockName}, depends on obtaining {neededMore} additional {neededItemEmoji} {neededItemName}.",
+            "Consider making {neededMore} more {neededItemEmoji} {neededItemName}. This will help you discover {itemToUnlockEmoji} {itemToUnlockName}.",
+            "The blueprint for {itemToUnlockEmoji} {itemToUnlockName} seems to call for {neededMore} more {neededItemEmoji} {neededItemName}.",
+            "Don't stop now! Just {neededMore} more {neededItemEmoji} {neededItemName} and {itemToUnlockEmoji} {itemToUnlockName} could be yours.",
+            "Unlocking {itemToUnlockEmoji} {itemToUnlockName} is just a matter of getting {neededMore} more {neededItemEmoji} {neededItemName}.",
+            "Your inventory shows you're close. Produce {neededMore} more {neededItemEmoji} {neededItemName} to reveal {itemToUnlockEmoji} {itemToUnlockName}.",
+            "The next step in your grand design involves {itemToUnlockEmoji} {itemToUnlockName}. Secure {neededMore} more {neededItemEmoji} {neededItemName} to proceed.",
+            "A little more effort! {neededMore} more {neededItemEmoji} {neededItemName} is all that stands between you and {itemToUnlockEmoji} {itemToUnlockName}.",
+            "Progress towards {itemToUnlockEmoji} {itemToUnlockName} by acquiring {neededMore} more {neededItemEmoji} {neededItemName}."
         ];
+        // MODIFIED: Added index for looping hints
+        let currentHintPhraseIndex = 0;
 
         function providePeriodicHint() {
             if (game.trueEndgameTriggered) {
@@ -1309,8 +1357,11 @@
                 const randomCloseItem = closeToUnlockItems[Math.floor(Math.random() * closeToUnlockItems.length)];
                 const neededMore = randomCloseItem.neededCount - randomCloseItem.currentCountOfPrerequisite;
 
-                const randomPhraseTemplate = HINT_PHRASES_NEED_MORE[Math.floor(Math.random() * HINT_PHRASES_NEED_MORE.length)];
-                let hintMessage = randomPhraseTemplate
+                // MODIFIED: Loop through hint phrases instead of random
+                const phraseTemplate = HINT_PHRASES_NEED_MORE[currentHintPhraseIndex];
+                currentHintPhraseIndex = (currentHintPhraseIndex + 1) % HINT_PHRASES_NEED_MORE.length;
+                
+                let hintMessage = phraseTemplate
                     .replace('{neededMore}', neededMore)
                     .replace('{neededItemEmoji}', randomCloseItem.names.neededItemEmoji)
                     .replace('{neededItemName}', randomCloseItem.names.neededItemName)
@@ -1416,7 +1467,7 @@
             });
 
             updateUI();
-            addLog("Pick apples to begin your journey.");
+            addLog("The orchard hums with a silence that watches. Roots whisper secrets older than empires, and above, the apples glow faintly—like thoughts waiting to be born. One of them ends the world. One of them remakes it in your image. Pick an 🍏 Apple.");
             dispatchTasks();
 
             scheduleNextHint();
