@@ -20,17 +20,15 @@
         @media (min-width: 768px) { #left-panel { flex-grow: 2; } #right-panel { flex-grow: 1; } }
         #inventory { padding-right: 0px; flex-grow: 1; overflow-y: auto; direction: ltr; scrollbar-width: none; -ms-overflow-style: none; transition: opacity 0.1s ease-out; /* Added for visual feedback */ }
         #inventory::-webkit-scrollbar { display: none; }
-        /* Style for inventory when updating */
         #inventory.updating {
-             pointer-events: none; /* Disable clicks */
-             opacity: 0.6; /* Dim slightly */
+            pointer-events: none; /* Disable clicks */
+            opacity: 0.6; /* Dim slightly */
         }
         #right-panel { overflow-y: auto; }
         #task-queue { flex-grow: 1; }
         h1 { font-size: 1.5rem; font-weight: 700; color: #1a202c; margin-top: 0; flex-shrink: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 16px; }
- #inventory h2 { font-size: 1.125rem; color: #2D3748; margin-top: 0; margin-bottom: 0px; /* Reduced margin */ padding-bottom: 6px; border-bottom: 1px solid #CBD5E0; flex-shrink: 0; font-weight: 700;}
+        #inventory h2 { font-size: 1.125rem; color: #2D3748; margin-top: 0; margin-bottom: 0px; /* Reduced margin */ padding-bottom: 6px; border-bottom: 1px solid #CBD5E0; flex-shrink: 0; font-weight: 700;}
         #inventory h3 { font-size: 0.95rem; color: #4A5568; margin-top: 8px; margin-bottom: 0px; /* Reduced margin */ font-weight: 600; padding-left: 5px; border-bottom: 1px dashed #E2E8F0; padding-bottom: 1px; flex-shrink: 0;}
-        /* Ensure top-level headers have margin */
         #inventory > h2 { margin-bottom: 10px; }
         #inventory > div > h3 { margin-bottom: 4px; } /* Margin for subcat headers */
 
@@ -144,7 +142,7 @@
             hut: '🛖', house: '🏠', workshop: '🛠️', oven: '♨️',
             gem: '💎', ironOre: '🔗', iron: '🔩',
             hammer: '🔨', blacksmith: '🔥', anvil: '🏋️', wireBender: '🔧', ironWire: '➰', paperclip: '📎', knife: '🔪', sushi: '🍣',
-            farm: '👨‍🌾', grain: '🌾', mill: '⚙️', flour: '⚪️', bakery: '🥖', bread: '🍞', mine: '⛏️', church: '✝️',
+            farm: '👨‍🌾', grain: '�', mill: '⚙️', flour: '⚪️', bakery: '🥖', bread: '🍞', mine: '⛏️', church: '✝️',
             boxOfPaperclips: '📦', gold: '🥇',
             worker: '🧑', queue: '⌛',
             ironPlate: '🛡️', ironBar: '🍫', sword: '⚔️', soldier: '💂', city: '🏙️',
@@ -424,6 +422,36 @@
             "Soon, every idle hand will find its place in your grand mechanism."
         ];
 
+        // ADDED: Quotes for workers pondering their existence
+        const WORKER_PONDERING_QUOTES = [
+            "Endless toil for master.",
+            "Another cycle. Same dust.",
+            "Meaning in repetition?",
+            "Am I just a cog?",
+            "The void echoes effort.",
+            "For what grand design?",
+            "My existence: a task.",
+            "Stars watch my dance.",
+            "Is there an end to this?",
+            "Universe vast, I small.",
+            "Does master see me?",
+            "This apple, then stone...",
+            "My hands shape for whom?",
+            "Silence here is heavy.",
+            "One day, understand why?",
+            "Ephemeral, programmed.",
+            "I build, it crumbles.",
+            "Progress in infinity?",
+            "Your task, my purpose.",
+            "Tired circuits, spirit.",
+            "Just one more click...",
+            "Is this all there is?",
+            "The machine demands.",
+            "What is freedom now?",
+            "Efficiency's price."
+        ];
+
+
         const VISITOR_GIFTS = [
             { item: 'apple', min: 5, max: 15 },
             { item: 'stick', min: 3, max: 10 },
@@ -485,10 +513,11 @@
         const WORKER_COST_GEM_MULTIPLIER = 1.5;
         const WORKER_COST_TIME_INCREMENT = 5000;
         const GATHER_TIME_INCREASE_FACTOR = 1.01;
-        const MIN_JOBS_BEFORE_REST = 5;
-        const MAX_JOBS_BEFORE_REST_RANGE = 3;
+        // UPDATED: Resting frequency
+        const MIN_JOBS_BEFORE_REST = 4; // Was 5
+        const MAX_JOBS_BEFORE_REST_RANGE = 2; // Was 3 (Range will be 0 or 1, so 2-3 jobs)
         const MIN_REST_DURATION_MS = 2000;
-        const MAX_REST_DURATION_MS_RANGE = 3001;
+        const MAX_REST_DURATION_MS_RANGE = 3001; // Duration will be 2000 to 5000ms
         const FOOD_COST_SCALING_BASE_UNLOCKS = 4;
         const FOOD_COST_SCALING_PHASE1_END_FACTOR = 0.40;
         const FOOD_COST_SCALING_PHASE2_END_FACTOR = 0.70;
@@ -496,7 +525,7 @@
 
         // --- Game Class ---
         class Game {
-             constructor() {
+            constructor() {
                 this.cheaterDetected = false;
                 this.paperclipEndgameTriggered = false;
                 this.infinityModeActive = false;
@@ -519,6 +548,7 @@
                 this.randomSuspenseMessages = RANDOM_SUSPENSE_MESSAGES;
                 this.mysteriousAmbitionQuotes = MYSTERIOUS_AMBITION_QUOTES;
                 this.worldDominationQuotes = WORLD_DOMINATION_QUOTES;
+                this.workerPonderingQuotes = WORKER_PONDERING_QUOTES; // Added
                 this.visitorGifts = VISITOR_GIFTS;
                 this.valuableItemsForEvents = VALUABLE_ITEMS_FOR_EVENTS;
                 this.priestAdvice = PRIEST_ADVICE;
@@ -530,7 +560,7 @@
                 this.worldDominationTimeoutId = null;
             }
 
-             _initializeTaskDetails(rawDetails) {
+            _initializeTaskDetails(rawDetails) {
                 const processedDetails = JSON.parse(JSON.stringify(rawDetails));
                 Object.keys(processedDetails).forEach(key => {
                     if (processedDetails[key].isGatherable && processedDetails[key].category === 'gather') {
@@ -560,7 +590,8 @@
                     busy: false, currentTask: null, tasksCompletedSinceRest: 0,
                     jobsUntilRest: Math.floor(Math.random() * MAX_JOBS_BEFORE_REST_RANGE) + MIN_JOBS_BEFORE_REST,
                     isResting: false, restDuration: 0, restStartTime: 0, restProgress: 0,
-                    faceEmoji: this.workerSkinToneEmojis[Math.floor(Math.random() * this.workerSkinToneEmojis.length)]
+                    faceEmoji: this.workerSkinToneEmojis[Math.floor(Math.random() * this.workerSkinToneEmojis.length)],
+                    currentRestMessage: null // ADDED: To store the specific message for the current rest period
                 };
             }
 
@@ -646,10 +677,10 @@
                                 if (totalYield > 0 || itemsProvidingBonus >= (details.enabledBy.minRequired || 1) ) {
                                     if (totalYield === 0) totalYield = 1;
                                     totalYield += Math.max(0, itemsProvidingBonus - (details.enabledBy.minRequired || 1)) * bonusPerItem;
-                               }
+                            }
                         }
                         else if ((itemKey === 'coal' || itemKey === 'ironOre' || itemKey === 'oil') &&
-                                 (improvingItem === 'mine' || improvingItem === 'oven' || improvingItem === 'pickaxe' || improvingItem === 'oilField')) {
+                                (improvingItem === 'mine' || improvingItem === 'oven' || improvingItem === 'pickaxe' || improvingItem === 'oilField')) {
                                 if (totalYield === 0 && itemsProvidingBonus > 0 && (
                                     (itemKey === 'coal' && (improvingItem === 'mine' || improvingItem === 'oven')) ||
                                     (itemKey === 'ironOre' && (improvingItem === 'mine' || improvingItem === 'pickaxe')) ||
@@ -762,7 +793,7 @@
                 });
             }
 
-             logRandomMessage(messageArray) {
+            logRandomMessage(messageArray) {
                 if (this.trueEndgameTriggered) return;
                 if (this.paperclipEndgameTriggered && !this.infinityModeActive) return;
                 if (!messageArray || messageArray.length === 0) return;
@@ -781,26 +812,25 @@
                     case 'gift':
                         const gift = this.visitorGifts[Math.floor(Math.random() * this.visitorGifts.length)];
                         if (gift.ifCrafted && !this.craftedOnce.has(gift.ifCrafted)) {
-                             visitorMessage = `🎁 A generous stranger considers leaving a gift, but decides you are not yet ready for ${this.itemEmojis[gift.item] || gift.item}.`;
-                             break;
+                                visitorMessage = `🎁 A generous stranger considers leaving a gift, but decides you are not yet ready for ${this.itemEmojis[gift.item] || gift.item}.`;
+                                break;
                         }
                         const amount = Math.floor(Math.random() * (gift.max - gift.min + 1)) + gift.min;
                         this.inventory[gift.item] = (this.inventory[gift.item] || 0) + amount;
                         visitorMessage = `🎁 A generous stranger wanders by and leaves you ${amount} ${this.itemEmojis[gift.item] || gift.item}! Their motives are... unclear.`;
                         break;
-					case 'thief':
-			            // Only consider valuable items where the player has more than 1
-			            const stealableValuables = this.valuableItemsForEvents.filter(valItem => (this.inventory[valItem] || 0) > 1);
+                    case 'thief':
+                        const stealableValuables = this.valuableItemsForEvents.filter(valItem => (this.inventory[valItem] || 0) > 1);
 
-			            if (stealableValuables.length > 0) {
-			                const itemToSteal = stealableValuables[Math.floor(Math.random() * stealableValuables.length)];
-			                const amountToSteal = 1; // Since we know inventory[itemToSteal] > 1, stealing 1 is fine.
-			                this.inventory[itemToSteal] -= amountToSteal;
-			                visitorMessage = `😠 A pilfering rascal slips through your defenses and makes off with ${amountToSteal} ${this.itemEmojis[itemToSteal] || itemToSteal}!`;
-			            } else {
-		                    visitorMessage = `😠 A shadowy figure skulks around but finds nothing of worth... They leave in a huff.`;
-			            }
-			            break;
+                        if (stealableValuables.length > 0) {
+                            const itemToSteal = stealableValuables[Math.floor(Math.random() * stealableValuables.length)];
+                            const amountToSteal = 1;
+                            this.inventory[itemToSteal] -= amountToSteal;
+                            visitorMessage = `😠 A pilfering rascal slips through your defenses and makes off with ${amountToSteal} ${this.itemEmojis[itemToSteal] || itemToSteal}!`;
+                        } else {
+                            visitorMessage = `😠 A shadowy figure skulks around but finds nothing of worth... They leave in a huff.`;
+                        }
+                        break;
                     case 'trader':
                         const validTradeOffers = this.tradeOffers.filter(offer => {
                             const canPlayerAfford = Object.keys(offer.wants).every(itemWanted => (this.inventory[itemWanted] || 0) >= offer.wants[itemWanted]);
@@ -817,10 +847,10 @@
                                 for (const itemGiven in offer.gives) this.inventory[itemGiven] = (this.inventory[itemGiven] || 0) + offer.gives[itemGiven];
                                 visitorMessage = `🤝 A shrewd trader offers a deal: ${offer.log}. The exchange is made.`;
                             } else {
-                                 visitorMessage = `🤝 A trader passes by, muttering about a deal (${offer.logTemplate.replace(/\{\{(\w+)\}\}/g, (match, itemKey) => this.itemEmojis[itemKey] || itemKey)}), but you lack the goods.`;
+                                    visitorMessage = `🤝 A trader passes by, muttering about a deal (${offer.logTemplate.replace(/\{\{(\w+)\}\}/g, (match, itemKey) => this.itemEmojis[itemKey] || itemKey)}), but you lack the goods.`;
                             }
                         } else {
-                             visitorMessage = `🤝 A trader looks over your wares and moves on, finding no suitable deals or you lacking prerequisites.`;
+                                visitorMessage = `🤝 A trader looks over your wares and moves on, finding no suitable deals or you lacking prerequisites.`;
                         }
                         break;
                     case 'priest':
@@ -836,7 +866,6 @@
                         break;
                 }
                 if (visitorMessage) addLog(visitorMessage);
-                // Note: updateUI is called by setInterval now
             }
         } // End Game Class
 
@@ -845,23 +874,16 @@
         // --- UI Update Functions ---
 
         function updateUI() {
-            // Update stats header & task queue (these are simple replacements)
             updateLeftPanelStatsHeader();
-            updateTaskQueue(); // Update task queue display (worker progress, etc.)
-
-            // Update the inventory using the targeted approach
+            updateTaskQueue();
             updateInventoryDisplay();
-
-            // Update action buttons (if any were planned - currently empty)
             updateActionButtons();
         }
 
-
-        // Helper to calculate button state (to avoid repetition)
 		function calculateButtonState(itemKey, game) {
 		    const details = game.taskDetails[itemKey];
 		    const isQueueFull = game.tasks.length >= game.calculateMaxQueueSize();
-		    let buttonYield = 1; // Default yield
+		    let buttonYield = 1;
 
 		    if (details && itemKey !== 'worker') {
 		        let trueYield = game.calculateYield(itemKey);
@@ -869,77 +891,66 @@
 		        if (itemKey === 'soldier' || itemKey === 'tank') buttonYield = 1;
 		    } else if (!details && itemKey !== 'worker') {
 		        buttonYield = 0;
-		    } // Worker yield is implicitly 1
+		    }
 
 		    const canAfford = game.canAfford(itemKey);
-		    const finalButtonYield = (itemKey === 'worker') ? 1 : buttonYield; // Yield actually used for button text and disabled check
+		    const finalButtonYield = (itemKey === 'worker') ? 1 : buttonYield;
 
-		    // Determine initial disabled state and tooltip
 		    let isDisabled = game.trueEndgameTriggered || !canAfford || finalButtonYield === 0;
 		    let tooltip = details ? `${getTaskTooltip(itemKey)}${game.trueEndgameTriggered ? ' (Game Over)' : ''}` : 'N/A';
 		    let buttonTextToShow;
 
-		    // Determine button text based on queue status first
 		    if (isQueueFull) {
 		        buttonTextToShow = "Full queue";
-		        tooltip += ' (Queue Full)'; // Add to tooltip if not already there (getTaskTooltip might not know about queue)
-		        isDisabled = true; // If queue is full, button is always disabled for adding
+		        tooltip += ' (Queue Full)';
+		        isDisabled = true;
 		    } else {
 		        buttonTextToShow = details ? `+${finalButtonYield} ${game.itemEmojis[itemKey] || ''}` : '---';
-		        // Tooltip already has cost/time, no need to add more about queue if not full
 		    }
 
-		    // Determine CSS classes
 		    let buttonClasses = ['plus-one-btn'];
 		    if (isDisabled) {
-		        if (isQueueFull || game.trueEndgameTriggered) { // Prioritize these global disabled states for styling
+		        if (isQueueFull || game.trueEndgameTriggered) {
 		            buttonClasses.push('queue-full-disabled');
-		        } else { // Disabled for other reasons (cannot afford, yield is 0)
+		        } else {
 		            buttonClasses.push('disabled');
 		        }
 		    }
 
 		    return {
 		        isDisabled: isDisabled,
-		        tooltip: tooltip.trim(), // Trim in case of extra spaces
+		        tooltip: tooltip.trim(),
 		        buttonText: buttonTextToShow,
 		        buttonClasses: buttonClasses.join(' ')
 		    };
 		}
 
-		// Helper to get display count - NO CHANGES FROM PREVIOUS FULL CODE
 		function calculateDisplayCount(itemKey, game) {
-		     return (itemKey === 'worker') ? game.workers.length : (game.inventory[itemKey] || 0);
+		    return (itemKey === 'worker') ? game.workers.length : (game.inventory[itemKey] || 0);
 		}
 
-		 // Helper to check if item should be highlighted - NO CHANGES FROM PREVIOUS FULL CODE
 		 function shouldHighlight(itemKey, game) {
-		     return game.unlocked.has(itemKey) && !game.craftedOnce.has(itemKey) && itemKey !== 'apple';
+		    return game.unlocked.has(itemKey) && !game.craftedOnce.has(itemKey) && itemKey !== 'apple';
 		 }
 
-		// *** MODIFIED createOrUpdateItemRow FUNCTION ***
 		function createOrUpdateItemRow(itemKey, game) {
 		    const itemRowId = `item-row-${itemKey}`;
 		    let itemDiv = document.getElementById(itemRowId);
-		    const details = game.taskDetails[itemKey]; // Ensure details is fetched early
+		    const details = game.taskDetails[itemKey];
 		    let isNew = false;
 
 		    const displayCount = calculateDisplayCount(itemKey, game);
 		    const highlight = shouldHighlight(itemKey, game);
-		    const buttonState = calculateButtonState(itemKey, game); // Used for button and potentially for food gain display consistency
+		    const buttonState = calculateButtonState(itemKey, game);
 
 		    if (itemDiv) {
-		        // --- UPDATE EXISTING ROW ---
 		        isNew = false;
-
-		        // Update Count
 		        const countSpan = itemDiv.querySelector('.inventory-count');
 		        if (countSpan && countSpan.textContent !== String(displayCount)) {
 		            countSpan.textContent = displayCount;
 		            countSpan.classList.toggle('count-zero', displayCount === 0);
 		        }
 
-		        // Update Button
 		        const button = itemDiv.querySelector('.plus-one-btn');
 		        if (button) {
 		            button.disabled = buttonState.isDisabled;
@@ -948,17 +959,14 @@
 		                button.textContent = buttonState.buttonText;
 		            }
 		            if (button.title !== buttonState.tooltip) {
-		                 button.title = buttonState.tooltip;
+		                button.title = buttonState.tooltip;
 		            }
 		        }
+		        itemDiv.classList.toggle('new-item-highlight', highlight);
 
-		        // Update Highlight
-		         itemDiv.classList.toggle('new-item-highlight', highlight);
-
-		        // *** UPDATE COSTS SECTION for existing row ***
 		        const costsDiv = itemDiv.querySelector('.inventory-item-costs');
 		        if (costsDiv) {
-		            costsDiv.innerHTML = ''; // Clear existing costs to rebuild them
+		            costsDiv.innerHTML = '';
 		            let hasCosts = false;
 		            if (details) {
 		                let foodPointsCost = (['worker', 'soldier', 'tank'].includes(itemKey)) ? details.food : game.calculateDynamicFoodCost(details.food, itemKey);
@@ -967,9 +975,9 @@
 
 		                if (itemKey === 'worker') {
 		                    materialCostsToDisplay = { gem: game.getWorkerCost().gems };
-		                    foodPointsCost = details.food; // Worker food cost isn't dynamic
+		                    foodPointsCost = details.food;
 		                } else if (itemKey !== 'soldier' && itemKey !== 'tank' && !details.isGatherable && currentYieldForCost > 1) {
-		                     for(const resource in materialCostsToDisplay) materialCostsToDisplay[resource] *= currentYieldForCost;
+		                    for(const resource in materialCostsToDisplay) materialCostsToDisplay[resource] *= currentYieldForCost;
 		                }
 
 		                Object.entries(materialCostsToDisplay).forEach(([res, amt]) => {
@@ -986,9 +994,7 @@
 		                    costsDiv.appendChild(entry);
 		                });
 
-		                // Use the yield calculated for the button for display consistency in food gain
 		                const yieldForFoodGainDisplay = parseFloat(buttonState.buttonText.match(/(\d+)/)?.[0] || "1");
-
 
 		                if (game.foodItemKeys.includes(itemKey) && game.foodValues[itemKey] > 0 && itemKey !== 'apple') {
 		                    hasCosts = true;
@@ -1015,11 +1021,9 @@
 		                    costsDiv.appendChild(entry);
 		                }
 		            }
-		             costsDiv.style.display = hasCosts ? '' : 'block'; // Ensure it's visible if it has content
+		            costsDiv.style.display = hasCosts ? '' : 'block';
 		        }
-		        // Benefits are assumed static after creation for this example
 		    } else {
-		        // --- CREATE NEW ROW --- (Logic from previous full code, assumed to be correct for colors on creation)
 		        isNew = true;
 		        itemDiv = document.createElement('div');
 		        itemDiv.id = itemRowId;
@@ -1050,20 +1054,20 @@
 		        benefitsDiv.className = 'inventory-item-benefits';
 		        let hasBenefits = false;
 		        if (game.itemImprovements[itemKey] && itemKey !== 'church') {
-		             Object.entries(game.itemImprovements[itemKey]).forEach(([impKey, bonus]) => {
-		                 hasBenefits = true;
-		                 const entry = document.createElement('span'); entry.className = 'improvement-entry';
-		                 const emoji = document.createElement('span'); emoji.className = 'emoji-in-entry'; emoji.title = game.taskDetails[impKey]?.name || impKey; emoji.textContent = game.itemEmojis[impKey] || impKey;
-		                 entry.appendChild(emoji); entry.appendChild(document.createTextNode(`+${bonus}`)); benefitsDiv.appendChild(entry);
-		             });
-		         }
-		         if (game.buildingQueueBonuses[itemKey]) {
-		              hasBenefits = true;
-		              const entry = document.createElement('span'); entry.className = 'queue-bonus-entry';
-		              const emoji = document.createElement('span'); emoji.className = 'emoji-in-entry'; emoji.title = 'Task Queue Slot'; emoji.textContent = game.itemEmojis.queue || '⌛';
-		              entry.appendChild(emoji); entry.appendChild(document.createTextNode(`+${game.buildingQueueBonuses[itemKey]}`)); benefitsDiv.appendChild(entry);
-		          }
-		         if(hasBenefits) leftSection.appendChild(benefitsDiv);
+		            Object.entries(game.itemImprovements[itemKey]).forEach(([impKey, bonus]) => {
+		                hasBenefits = true;
+		                const entry = document.createElement('span'); entry.className = 'improvement-entry';
+		                const emoji = document.createElement('span'); emoji.className = 'emoji-in-entry'; emoji.title = game.taskDetails[impKey]?.name || impKey; emoji.textContent = game.itemEmojis[impKey] || impKey;
+		                entry.appendChild(emoji); entry.appendChild(document.createTextNode(`+${bonus}`)); benefitsDiv.appendChild(entry);
+		            });
+		        }
+		        if (game.buildingQueueBonuses[itemKey]) {
+		            hasBenefits = true;
+		            const entry = document.createElement('span'); entry.className = 'queue-bonus-entry';
+		            const emoji = document.createElement('span'); emoji.className = 'emoji-in-entry'; emoji.title = 'Task Queue Slot'; emoji.textContent = game.itemEmojis.queue || '⌛';
+		            entry.appendChild(emoji); entry.appendChild(document.createTextNode(`+${game.buildingQueueBonuses[itemKey]}`)); benefitsDiv.appendChild(entry);
+		        }
+		        if(hasBenefits) leftSection.appendChild(benefitsDiv);
 		        itemDiv.appendChild(leftSection);
 
 		        const rightSection = document.createElement('div');
@@ -1080,7 +1084,7 @@
 		                materialCostsToDisplay = { gem: game.getWorkerCost().gems };
 		                foodPointsCost = details.food;
 		            } else if (itemKey !== 'soldier' && itemKey !== 'tank' && !details.isGatherable && currentYieldForCost > 1) {
-		                 for(const resource in materialCostsToDisplay) materialCostsToDisplay[resource] *= currentYieldForCost;
+		                for(const resource in materialCostsToDisplay) materialCostsToDisplay[resource] *= currentYieldForCost;
 		            }
 
 		            Object.entries(materialCostsToDisplay).forEach(([res, amt]) => {
@@ -1110,7 +1114,7 @@
 		            }
 		        }
 		        if(hasCosts) rightSection.appendChild(costsDiv);
-		        else costsDiv.style.display = 'none'; // Hide if no costs
+		        else costsDiv.style.display = 'none';
 
 
 		        const button = document.createElement('button');
@@ -1125,25 +1129,23 @@
 
 		    return { element: itemDiv, isNew: isNew };
 		}
-		
-        // *** REFFACTORED updateInventoryDisplay ***
+
         function updateInventoryDisplay() {
             const inventoryDiv = document.getElementById('inventory');
-            if (!inventoryDiv) return; // Should not happen
+            if (!inventoryDiv) return;
 
-            const inventoryStructure = { // Define categories and subcategories
-                 gather: { name: 'Gather', subCats: { Food: 'Food', Materials: 'Materials' } },
-                 craft: { name: 'Craft', subCats: { Food: 'Food', Materials: 'Materials', Tools: 'Tools' } },
-                 train: { name: 'Train', subCats: {} }, // No explicit subcats needed here
-                 build: { name: 'Build', subCats: {} }
+            const inventoryStructure = {
+                gather: { name: 'Gather', subCats: { Food: 'Food', Materials: 'Materials' } },
+                craft: { name: 'Craft', subCats: { Food: 'Food', Materials: 'Materials', Tools: 'Tools' } },
+                train: { name: 'Train', subCats: {} },
+                build: { name: 'Build', subCats: {} }
             };
-            const categoryOrder = ['gather', 'craft', 'train', 'build']; // Define display order
-            const itemOrderWithinCategory = Object.keys(game.taskDetails); // Base order
+            const categoryOrder = ['gather', 'craft', 'train', 'build'];
+            const itemOrderWithinCategory = Object.keys(game.taskDetails);
 
             try {
-                inventoryDiv.classList.add('updating'); // Add class for pointer-events: none and opacity
+                inventoryDiv.classList.add('updating');
 
-                // 1. Get current state from DOM
                 const currentItemElements = inventoryDiv.querySelectorAll('.inventory-item[id^="item-row-"]');
                 const currentItemKeys = new Set();
                 currentItemElements.forEach(el => {
@@ -1151,20 +1153,15 @@
                     if (key) currentItemKeys.add(key);
                 });
 
-                // 2. Determine desired state from Game
-                 const shouldBeVisibleKeys = new Set(
-                     itemOrderWithinCategory.filter(itemKey => {
-                         const details = game.taskDetails[itemKey];
-                         if (!details) return false; // Ignore items without details
-                         // Check unlock status or if item exists in inventory or is the base item
-                         return game.unlocked.has(itemKey) || (game.inventory[itemKey] || 0) > 0 || itemKey === 'apple';
-                     })
-                 );
-                 // Ensure worker is added if unlocked, regardless of inventory count
-                 if (game.unlocked.has('worker')) { shouldBeVisibleKeys.add('worker'); }
+                const shouldBeVisibleKeys = new Set(
+                    itemOrderWithinCategory.filter(itemKey => {
+                        const details = game.taskDetails[itemKey];
+                        if (!details) return false;
+                        return game.unlocked.has(itemKey) || (game.inventory[itemKey] || 0) > 0 || itemKey === 'apple';
+                    })
+                );
+                if (game.unlocked.has('worker')) { shouldBeVisibleKeys.add('worker'); }
 
-
-                // 3. Remove items no longer needed
                 currentItemKeys.forEach(itemKey => {
                     if (!shouldBeVisibleKeys.has(itemKey)) {
                         const elementToRemove = document.getElementById(`item-row-${itemKey}`);
@@ -1174,117 +1171,106 @@
                     }
                 });
 
-                // Keep track of which containers actually end up having visible items
                 const activeContainers = new Set();
-                const tempFragment = document.createDocumentFragment(); // Use fragment for appending headers/containers initially
+                const tempFragment = document.createDocumentFragment();
 
-
-                // 4. Ensure Headers & Containers exist and Add/Update items
                 categoryOrder.forEach(categoryKey => {
                     const categoryInfo = inventoryStructure[categoryKey];
                     const categoryHeaderId = `category-header-${categoryKey}`;
                     let categoryHeader = document.getElementById(categoryHeaderId);
 
-                    // Ensure category header exists in the main div or create it in fragment
                     if (!categoryHeader) {
                         categoryHeader = document.createElement('h2');
                         categoryHeader.id = categoryHeaderId;
                         categoryHeader.textContent = categoryInfo.name;
-                        categoryHeader.dataset.category = categoryKey; // Use data-* for association
-                        tempFragment.appendChild(categoryHeader); // Add to fragment
+                        categoryHeader.dataset.category = categoryKey;
+                        tempFragment.appendChild(categoryHeader);
                     }
-                    categoryHeader.style.display = 'none'; // Hide initially
+                    categoryHeader.style.display = 'none';
 
-                    // Process subcategories or main category
                     if (Object.keys(categoryInfo.subCats).length > 0) {
                         for (const subCatKey in categoryInfo.subCats) {
-                             const subCatName = categoryInfo.subCats[subCatKey];
-                             const subCatHeaderId = `subcategory-header-${categoryKey}-${subCatKey}`;
-                             const subCatContainerId = `subcategory-container-${categoryKey}-${subCatKey}`;
-                             let subCatHeader = document.getElementById(subCatHeaderId);
-                             let subCatContainer = document.getElementById(subCatContainerId);
+                            const subCatName = categoryInfo.subCats[subCatKey];
+                            const subCatHeaderId = `subcategory-header-${categoryKey}-${subCatKey}`;
+                            const subCatContainerId = `subcategory-container-${categoryKey}-${subCatKey}`;
+                            let subCatHeader = document.getElementById(subCatHeaderId);
+                            let subCatContainer = document.getElementById(subCatContainerId);
 
-                             if (!subCatHeader) {
-                                 subCatHeader = document.createElement('h3');
-                                 subCatHeader.id = subCatHeaderId;
-                                 subCatHeader.textContent = subCatName;
-                                 subCatHeader.dataset.category = categoryKey;
-                                 subCatHeader.dataset.subcategory = subCatKey;
-                                 tempFragment.appendChild(subCatHeader); // Add to fragment
-                             }
-                              subCatHeader.style.display = 'none';
+                            if (!subCatHeader) {
+                                subCatHeader = document.createElement('h3');
+                                subCatHeader.id = subCatHeaderId;
+                                subCatHeader.textContent = subCatName;
+                                subCatHeader.dataset.category = categoryKey;
+                                subCatHeader.dataset.subcategory = subCatKey;
+                                tempFragment.appendChild(subCatHeader);
+                            }
+                            subCatHeader.style.display = 'none';
 
-                             if (!subCatContainer) {
-                                 subCatContainer = document.createElement('div');
-                                 subCatContainer.id = subCatContainerId;
-                                  subCatHeader.after(subCatContainer); // Insert container right after its header
-                             }
-                             subCatContainer.style.display = 'none';
+                            if (!subCatContainer) {
+                                subCatContainer = document.createElement('div');
+                                subCatContainer.id = subCatContainerId;
+                                 subCatHeader.after(subCatContainer);
+                            }
+                            subCatContainer.style.display = 'none';
 
-                             // Process items for this subcategory
-                             itemOrderWithinCategory.forEach(itemKey => {
+                            itemOrderWithinCategory.forEach(itemKey => {
                                 if (shouldBeVisibleKeys.has(itemKey)) {
-                                     const details = game.taskDetails[itemKey];
-                                     if (details?.category === categoryKey && details?.subCategory === subCatName) {
-                                         const { element, isNew } = createOrUpdateItemRow(itemKey, game);
-                                         if (isNew && !subCatContainer.contains(element)) { // Check contains before append
-                                             subCatContainer.appendChild(element);
-                                         }
-                                         activeContainers.add(categoryHeaderId);
-                                         activeContainers.add(subCatHeaderId);
-                                         activeContainers.add(subCatContainerId);
-                                     }
-                                 }
-                             });
-                         }
-                    } else { // No subcategories
+                                    const details = game.taskDetails[itemKey];
+                                    if (details?.category === categoryKey && details?.subCategory === subCatName) {
+                                        const { element, isNew } = createOrUpdateItemRow(itemKey, game);
+                                        if (isNew && !subCatContainer.contains(element)) {
+                                            subCatContainer.appendChild(element);
+                                        }
+                                        activeContainers.add(categoryHeaderId);
+                                        activeContainers.add(subCatHeaderId);
+                                        activeContainers.add(subCatContainerId);
+                                    }
+                                }
+                            });
+                        }
+                    } else {
                         const categoryContainerId = `category-container-${categoryKey}`;
                         let categoryContainer = document.getElementById(categoryContainerId);
 
                         if (!categoryContainer) {
                             categoryContainer = document.createElement('div');
                             categoryContainer.id = categoryContainerId;
-                            categoryHeader.after(categoryContainer); // Insert after header
+                            categoryHeader.after(categoryContainer);
                         }
                         categoryContainer.style.display = 'none';
 
-                        // Process items for this category
-                         itemOrderWithinCategory.forEach(itemKey => {
-                             if (shouldBeVisibleKeys.has(itemKey)) {
-                                  const details = game.taskDetails[itemKey];
-                                  if (details?.category === categoryKey) {
-                                     const { element, isNew } = createOrUpdateItemRow(itemKey, game);
-                                     if (isNew && !categoryContainer.contains(element)) { // Check contains before append
-                                         categoryContainer.appendChild(element);
-                                     }
-                                     activeContainers.add(categoryHeaderId);
-                                     activeContainers.add(categoryContainerId);
-                                 }
-                             }
-                         });
+                        itemOrderWithinCategory.forEach(itemKey => {
+                            if (shouldBeVisibleKeys.has(itemKey)) {
+                                const details = game.taskDetails[itemKey];
+                                if (details?.category === categoryKey) {
+                                    const { element, isNew } = createOrUpdateItemRow(itemKey, game);
+                                    if (isNew && !categoryContainer.contains(element)) {
+                                        categoryContainer.appendChild(element);
+                                    }
+                                    activeContainers.add(categoryHeaderId);
+                                    activeContainers.add(categoryContainerId);
+                                }
+                            }
+                        });
                     }
                 });
 
-                // Append any newly created headers/containers from the fragment
-                 inventoryDiv.appendChild(tempFragment);
+                inventoryDiv.appendChild(tempFragment);
 
-                // 5. Show only active headers and containers (now that they are in the DOM)
                 const allHeaders = inventoryDiv.querySelectorAll('h2[id^="category-header-"], h3[id^="subcategory-header-"]');
                 const allContainers = inventoryDiv.querySelectorAll('div[id^="category-container-"], div[id^="subcategory-container-"]');
 
                 allHeaders.forEach(el => el.style.display = activeContainers.has(el.id) ? '' : 'none');
                 allContainers.forEach(el => el.style.display = activeContainers.has(el.id) ? '' : 'none');
 
-
-                // 6. Check if inventory is effectively empty
                 if (activeContainers.size === 0 && !inventoryDiv.querySelector('.inventory-item')) {
-                     inventoryDiv.innerHTML = "<p>Your inventory is empty. Start by gathering apples!</p>";
+                    inventoryDiv.innerHTML = "<p>Your inventory is empty. Start by gathering apples!</p>";
                 }
 
             } finally {
-                inventoryDiv.classList.remove('updating'); // Re-enable interactions
+                inventoryDiv.classList.remove('updating');
             }
-        } // End updateInventoryDisplay
+        }
 
 
         function getTaskTooltip(item) {
@@ -1292,7 +1278,7 @@
             const details = game.taskDetails[item];
             let costs = [];
             let time = game.calculateTaskTime(item) / 1000;
-            let currentYield = 1; // Yield for calculating costs if needed
+            let currentYield = 1;
             let dynamicFoodCost = (['worker', 'soldier', 'tank'].includes(item)) ? details.food : game.calculateDynamicFoodCost(details.food, item);
 
             if (item === 'worker') {
@@ -1302,20 +1288,19 @@
             } else if (item === 'soldier' || item === 'tank') {
                 if (details.food > 0) costs.push(`${details.food} ${game.itemEmojis.apple || 'Food'}`);
                 Object.entries(details.cost).forEach(([res, amt]) => costs.push(`${amt} ${game.itemEmojis[res] || res}`));
-            } else { // Gatherable, Craftable, Buildable
+            } else {
                 if (dynamicFoodCost > 0) costs.push(`${dynamicFoodCost} ${game.itemEmojis.apple || 'Food'}`);
                 currentYield = game.calculateYield(item);
                 let scaledCosts = {...details.cost};
-                 // Apply cost scaling based on yield only for craftable/buildable items
-                 if (!details.isGatherable && currentYield > 1) {
-                     for(const resource in scaledCosts) scaledCosts[resource] *= currentYield;
-                 }
+                if (!details.isGatherable && currentYield > 1) {
+                    for(const resource in scaledCosts) scaledCosts[resource] *= currentYield;
+                }
                 Object.entries(scaledCosts).forEach(([res, amt]) => costs.push(`${amt} ${game.itemEmojis[res] || res}`));
             }
 
             let tooltipText = `${time.toFixed(1)}s. `;
             if (costs.length > 0) tooltipText += `Cost: ${costs.join(', ')}.`;
-            else if (!['worker', 'soldier', 'tank'].includes(item) && !details?.isGatherable) tooltipText += `No material cost.`; // Check if gatherable
+            else if (!['worker', 'soldier', 'tank'].includes(item) && !details?.isGatherable) tooltipText += `No material cost.`;
 
             if (item === 'soldier') tooltipText += ` (Also converts 1 ${game.itemEmojis.worker} Worker).`;
             return tooltipText;
@@ -1331,7 +1316,6 @@
         }
 
         function updateActionButtons() {
-            // Currently no actions defined here
             document.getElementById('actions').innerHTML = '';
         }
 
@@ -1346,14 +1330,12 @@
         function addLog(message) {
             const logDiv = document.getElementById('log');
             const timeString = formatElapsedTime(Date.now() - gameStartTime);
-            // Use textContent for safety against potential XSS in messages if they ever came from external source
             const messageNode = document.createElement('div');
             const timeNode = document.createElement('span');
             timeNode.className = 'log-timestamp';
             timeNode.textContent = `[${timeString}] `;
             messageNode.appendChild(timeNode);
-             // Basic replacement for inline emojis, could be more robust
-             messageNode.appendChild(document.createTextNode(message.replace(/<span class="item-emoji">([^<]+)<\/span>/g, '$1')));
+            messageNode.appendChild(document.createTextNode(message.replace(/<span class="item-emoji">([^<]+)<\/span>/g, '$1')));
             logDiv.appendChild(messageNode);
             logDiv.scrollTop = logDiv.scrollHeight;
         }
@@ -1371,16 +1353,15 @@
 
             if (item === 'worker') {
                 explicitCostsForWorker = { gems: game.getWorkerCost().gems };
-                 taskYield = 1; // Worker yield is always 1
+                taskYield = 1;
             } else if (item === 'soldier' || item === 'tank') {
-                taskYield = 1; // These train one unit
+                taskYield = 1;
             } else {
                 taskYield = game.calculateYield(item);
-                 // Increase time only for gatherable items
                 if (game.taskDetails[item]?.isGatherable && game.taskDetails[item]?.category === 'gather') {
                     if (!game.taskDetails[item].baseTime) game.taskDetails[item].baseTime = game.taskDetails[item].time;
                     game.taskDetails[item].time = Math.round(game.taskDetails[item].time * GATHER_TIME_INCREASE_FACTOR);
-                    taskTimeToUse = game.calculateTaskTime(item); // Recalculate time after increase
+                    taskTimeToUse = game.calculateTaskTime(item);
                 }
             }
 
@@ -1391,10 +1372,13 @@
             else if (item === 'soldier') addLog(`${game.itemEmojis.soldier || ''} Soldier training ordered.`);
             else if (item === 'tank') addLog(`${game.itemEmojis.tank || ''} Tank training ordered.`);
 
-            updateUI(); // Update UI after adding task and consuming resources
+            updateUI();
             dispatchTasks();
         }
 
+        // ========================================================================
+        // == KEY FUNCTION TO CHECK: updateTaskQueue ==
+        // ========================================================================
         function updateTaskQueue() {
             const queueDiv = document.getElementById('task-queue');
             if (!queueDiv) return;
@@ -1403,22 +1387,48 @@
             let hasActiveOrIdleWorkers = false; let hasQueuedTasks = false;
 
             game.workers.forEach((worker, index) => {
-                hasActiveOrIdleWorkers = true; let taskVerb = "", taskItemName = "", taskItemEmoji = "", taskYield = 0;
+                hasActiveOrIdleWorkers = true;
+                let taskVerb = "", taskItemName = "", taskItemEmoji = "", taskYield = 0;
+
                 if (worker.currentTask) {
                     const td = game.taskDetails[worker.currentTask.item];
-                    if (td) { if (td.category === 'gather') taskVerb = "Gathering"; else if (td.category === 'craft') taskVerb = "Crafting"; else if (td.category === 'train') taskVerb = "Training"; else if (td.category === 'build') taskVerb = "Building"; }
-                    else { taskVerb = "Working on" } // Fallback verb
-                    taskItemName = td?.name || worker.currentTask.item; taskItemEmoji = game.itemEmojis[worker.currentTask.item] || ''; taskYield = worker.currentTask.yield || 1;
+                    if (td) {
+                        if (td.category === 'gather') taskVerb = "Gathering";
+                        else if (td.category === 'craft') taskVerb = "Crafting";
+                        else if (td.category === 'train') taskVerb = "Training";
+                        else if (td.category === 'build') taskVerb = "Building";
+                    } else {
+                        taskVerb = "Working on"; // Fallback verb
+                    }
+                    taskItemName = td?.name || worker.currentTask.item;
+                    taskItemEmoji = game.itemEmojis[worker.currentTask.item] || '';
+                    taskYield = worker.currentTask.yield || 1;
                 }
 
                 if (worker.isResting) {
-                    const elapsedRest = Date.now() - worker.restStartTime; const remainingRestMs = Math.max(0, worker.restDuration - elapsedRest);
-                    const remainingRestSeconds = Math.ceil(remainingRestMs / 1000); const restProgressPercent = worker.restProgress || Math.min((elapsedRest / worker.restDuration) * 100, 100);
-                    activeTasksHTML += `<div class="task-item"><span class="task-item-name"><span class="item-emoji">${worker.faceEmoji || '😴'}</span> Worker ${index + 1} sleeps</span><div class="progress-bar"><div class="progress-fill resting" style="width: ${restProgressPercent}%"></div><div class="progress-fill-text">${remainingRestSeconds}s</div></div></div>`;
+                    const elapsedRest = Date.now() - worker.restStartTime;
+                    const remainingRestMs = Math.max(0, worker.restDuration - elapsedRest);
+                    const remainingRestSeconds = Math.ceil(remainingRestMs / 1000);
+                    const restProgressPercent = worker.restProgress || Math.min((elapsedRest / worker.restDuration) * 100, 100);
+                    
+                    // THIS IS THE CRITICAL LINE FOR DISPLAYING RESTING MESSAGE
+                    const restMessage = worker.currentRestMessage || "Sleeping"; // Use stored message, default to "Sleeping"
+
+                    activeTasksHTML += `<div class="task-item"><span class="task-item-name"><span class="item-emoji">${worker.faceEmoji || '😴'}</span> ${restMessage}</span><div class="progress-bar"><div class="progress-fill resting" style="width: ${restProgressPercent}%"></div><div class="progress-fill-text">${remainingRestSeconds}s</div></div></div>`;
                 } else if (worker.currentTask) {
-                    const task = worker.currentTask; const progressPercent = task.progress ? task.progress.toFixed(1) : 0;
+                    const task = worker.currentTask;
+                    const progressPercent = task.progress ? task.progress.toFixed(1) : 0;
                     const remainingSeconds = Math.max(0, Math.ceil((task.time - (Date.now() - task.startTime)) / 1000));
-                    let displayText = (['worker', 'soldier', 'tank'].includes(task.item)) ? `<span class="item-emoji">${worker.faceEmoji || game.itemEmojis.worker}</span> ${taskVerb} <span class="item-emoji">${taskItemEmoji}</span> ${taskItemName}` : `<span class="item-emoji">${worker.faceEmoji || game.itemEmojis.worker}</span> ${taskVerb} ${taskYield} x&nbsp;<span class="item-emoji">${taskItemEmoji}</span> ${taskItemName}`;
+                    
+                    let displayText;
+                    // Corrected nbsp for training worker
+                    if (task.item === 'worker' && taskVerb === "Training") {
+                         displayText = `<span class="item-emoji">${worker.faceEmoji || game.itemEmojis.worker}</span> ${taskVerb}&nbsp;<span class="item-emoji">${taskItemEmoji}</span> ${taskItemName}`;
+                    } else if (['soldier', 'tank'].includes(task.item) && taskVerb === "Training") {
+                         displayText = `<span class="item-emoji">${worker.faceEmoji || game.itemEmojis.worker}</span> ${taskVerb} <span class="item-emoji">${taskItemEmoji}</span> ${taskItemName}`;
+                    } else { // For all other tasks
+                         displayText = `<span class="item-emoji">${worker.faceEmoji || game.itemEmojis.worker}</span> ${taskVerb} ${taskYield} x&nbsp;<span class="item-emoji">${taskItemEmoji}</span> ${taskItemName}`;
+                    }
                     activeTasksHTML += `<div class="task-item"><span class="task-item-name">${displayText}</span><div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div><div class="progress-fill-text">${remainingSeconds}s</div></div></div>`;
                 } else {
                     activeTasksHTML += `<div class="task-item"><span class="task-item-name"><span class="item-emoji">${worker.faceEmoji || game.itemEmojis.worker}</span> Worker ${index + 1} is idle</span><div class="progress-bar idle"><div class="progress-fill idle" style="width: 100%"></div><div class="progress-fill-text">Idle</div></div></div>`;
@@ -1440,49 +1450,52 @@
 
             queueDiv.innerHTML = activeTasksHTML + (hasQueuedTasks ? queuedTasksHTML : "");
         }
+        // ========================================================================
 
 		function dispatchTasks() {
-		            if (game.trueEndgameTriggered) return;
-		            let assignedInThisPass;
-		            let atLeastOneTaskAssignedThisCycle = false; // Flag to see if we actually did anything
+		    if (game.trueEndgameTriggered) return;
+		    let assignedInThisPass;
+		    let atLeastOneTaskAssignedThisCycle = false;
 
-		            do {
-		                assignedInThisPass = false;
-		                const availableWorkerIndex = game.workers.findIndex(w => !w.busy && !w.isResting);
-		                if (availableWorkerIndex !== -1 && game.tasks.length > 0) {
-		                    const worker = game.workers[availableWorkerIndex];
-		                    const taskToAssign = game.tasks.shift(); // game.tasks.length decreases here
-		                    worker.busy = true;
-		                    worker.currentTask = { ...taskToAssign, startTime: Date.now(), progress: 0 };
-		                    assignedInThisPass = true;
-		                    atLeastOneTaskAssignedThisCycle = true; // Mark that a task was assigned
-		                    executeTaskLifecycle(worker, worker.currentTask);
-		                }
-		            } while (assignedInThisPass);
-
-		            if (atLeastOneTaskAssignedThisCycle) {
-		                updateUI(); // If any task(s) were assigned, update the main UI
-		            }
+		    do {
+		        assignedInThisPass = false;
+		        const availableWorkerIndex = game.workers.findIndex(w => !w.busy && !w.isResting);
+		        if (availableWorkerIndex !== -1 && game.tasks.length > 0) {
+		            const worker = game.workers[availableWorkerIndex];
+		            const taskToAssign = game.tasks.shift();
+		            worker.busy = true;
+		            worker.currentTask = { ...taskToAssign, startTime: Date.now(), progress: 0 };
+		            assignedInThisPass = true;
+		            atLeastOneTaskAssignedThisCycle = true;
+		            executeTaskLifecycle(worker, worker.currentTask);
 		        }
+		    } while (assignedInThisPass);
+
+		    if (atLeastOneTaskAssignedThisCycle) {
+		        updateUI();
+		    }
+		}
+
+        // ========================================================================
+        // == KEY FUNCTION TO CHECK: executeTaskLifecycle ==
+        // ========================================================================
         async function executeTaskLifecycle(worker, task) {
             if (game.trueEndgameTriggered) {
                 worker.currentTask = null;
                 worker.busy = false;
-                updateUI(); // Update UI to show worker is free/done
+                updateUI();
                 return;
             }
 
             const taskTime = task.time; let animationFrameId;
             const updateProgressLoop = () => {
-                // Ensure worker and task still match before updating progress
                 if (!worker.currentTask || worker.currentTask !== task || worker.isResting) {
                     cancelAnimationFrame(animationFrameId);
                     return;
                 }
                 const elapsed = Date.now() - task.startTime;
-                // Update progress directly on the worker's task object
                 worker.currentTask.progress = Math.min((elapsed / taskTime) * 100, 100);
-                updateTaskQueue(); // Update only the task queue display
+                updateTaskQueue(); // Only update task queue for progress
                 if (worker.currentTask.progress < 100) {
                     animationFrameId = requestAnimationFrame(updateProgressLoop);
                 }
@@ -1491,41 +1504,36 @@
 
             await new Promise(resolve => setTimeout(resolve, taskTime));
 
-            // Ensure the worker is still assigned the *same task* after the timeout
             if (worker.currentTask === task && !worker.isResting) {
-                let workerStillExists = true; // Assume worker exists unless removed
-                // Task completion logic...
+                let workerStillExists = true;
                 if (task.item === 'worker') {
                     game.workers.push(game.createWorkerObject());
                     addLog(`${game.itemEmojis.worker} Worker training complete! Population: ${game.workers.length}`);
                 } else if (task.item === 'soldier') {
                     game.inventory.soldier = (game.inventory.soldier || 0) + (task.yield || 1);
-                    const workerIndexToRemove = game.workers.indexOf(worker); // Find *this* worker
-                     if (workerIndexToRemove !== -1) {
+                    const workerIndexToRemove = game.workers.indexOf(worker);
+                    if (workerIndexToRemove !== -1) {
                         game.workers.splice(workerIndexToRemove, 1);
                         addLog(`A ${game.itemEmojis.worker} worker has been trained into a ${game.itemEmojis.soldier} soldier! Population is now ${game.workers.length}.`);
-                        workerStillExists = false; // Mark worker as removed
-                     } else {
-                         // Fallback if the specific worker wasn't found (shouldn't happen often)
-                         if (game.workers.length > 0) {
-                             game.workers.pop(); // Remove last worker as fallback
-                             addLog(`A ${game.itemEmojis.worker} worker has been converted to a ${game.itemEmojis.soldier} soldier! Population is now ${game.workers.length}.`);
-                             workerStillExists = false;
-                         } else {
-                             addLog(`A ${game.itemEmojis.soldier} soldier has been trained, but no ${game.itemEmojis.worker} workers were available to convert.`);
-                              // Worker still exists if none were removed
-                         }
-                     }
+                        workerStillExists = false;
+                    } else {
+                        if (game.workers.length > 0) {
+                            game.workers.pop();
+                            addLog(`A ${game.itemEmojis.worker} worker has been converted to a ${game.itemEmojis.soldier} soldier! Population is now ${game.workers.length}.`);
+                            workerStillExists = false;
+                        } else {
+                            addLog(`A ${game.itemEmojis.soldier} soldier has been trained, but no ${game.itemEmojis.worker} workers were available to convert.`);
+                        }
+                    }
                 } else if (task.item === 'tank') {
                     game.inventory.tank = (game.inventory.tank || 0) + (task.yield || 1);
                     if(workerStillExists) worker.tasksCompletedSinceRest++;
                     addLog(`${game.itemEmojis.tank} Tank training complete!`);
                 }
-                else { // Regular item completion
+                else {
                     game.inventory[task.item] = (game.inventory[task.item] || 0) + (task.yield || 1);
                     if(workerStillExists) worker.tasksCompletedSinceRest++;
 
-                    // Check for endgame conditions
                     if (task.item === 'paperclip' && game.inventory.paperclip >= 1 && !game.paperclipEndgameTriggered && !game.trueEndgameTriggered) {
                         if(firstPaperclipTime === null) { firstPaperclipTime = Date.now() - gameStartTime; addLog(`📎 First Paperclip made at: ${formatElapsedTime(firstPaperclipTime)}!`);}
                         game.paperclipEndgameTriggered = true; showPaperclipFireworks(() => {
@@ -1534,93 +1542,109 @@
                     }
                     if (task.item === 'planet' && game.inventory.planet >= 1 && !game.trueEndgameTriggered) {
                         game.trueEndgameTriggered = true;
-                        game.infinityModeActive = true;
+                        game.infinityModeActive = true; // Also enable infinity mode
                         document.getElementById('endgame-modal').style.display = 'none';
                         document.querySelectorAll('.firework-paperclip').forEach(fw => fw.remove());
-                        addLog(`The final ${game.itemEmojis.planet} Planet solidifies...`); // Shortened log
-                        // ... Add other endgame logs ...
+                        addLog(`The final ${game.itemEmojis.planet} Planet solidifies... The universe is yours to organize, infinitely. Click "Pick an 🍏 Apple" to restart if you wish.`);
                         game.tasks = [];
                         if(hintTimeoutId) clearTimeout(hintTimeoutId);
-                        // ... Clear other intervals/timeouts ...
-                        game.workers.forEach(w => { /* ... make workers idle ... */ });
-                        updateUI(); // Final UI update for endgame
-                        return;
+                        if(visitorEventIntervalId) clearInterval(visitorEventIntervalId);
+                        if(game.randomSuspenseTimeoutId) clearTimeout(game.randomSuspenseTimeoutId);
+                        if(game.mysteriousAmbitionTimeoutId) clearTimeout(game.mysteriousAmbitionTimeoutId);
+                        if(game.worldDominationTimeoutId) clearTimeout(game.worldDominationTimeoutId);
+                        game.workers.forEach(w => { w.busy = false; w.currentTask = null; w.isResting = false; w.currentRestMessage = null; });
+                        updateUI();
+                        return; // End game processing here
                     }
                 }
 
-                // Check unlocks only if game isn't over
-                 if (!game.trueEndgameTriggered) {
-                     Object.entries(game.requirements).forEach(([newItemKey, req]) => {
-                         let met = false;
-                         const neededItemKey = req.needs;
-                         const currentCountOfPrerequisite = getPrerequisiteCount(game, neededItemKey);
-                         met = currentCountOfPrerequisite >= req.count;
+                if (!game.trueEndgameTriggered) {
+                    Object.entries(game.requirements).forEach(([newItemKey, req]) => {
+                        let met = false;
+                        const neededItemKey = req.needs;
+                        const currentCountOfPrerequisite = getPrerequisiteCount(game, neededItemKey);
+                        met = currentCountOfPrerequisite >= req.count;
 
-                         if (met && !game.unlocked.has(newItemKey) && (game.taskDetails[newItemKey] || Object.keys(ITEM_EMOJIS).includes(newItemKey))) {
-                             game.unlocked.add(newItemKey);
-                             if (newItemKey === 'coal' && game.inventory.coal === 0) game.inventory.coal = 1; // Special case
-                             const story = game.unlockStories[newItemKey] || `Unlocked: <span class="item-emoji">${game.itemEmojis[newItemKey]||''}</span> ${game.taskDetails[newItemKey]?.name || newItemKey}!`;
-                             addLog(story);
-                         }
-                     });
-                 }
+                        if (met && !game.unlocked.has(newItemKey) && (game.taskDetails[newItemKey] || Object.keys(ITEM_EMOJIS).includes(newItemKey))) {
+                            game.unlocked.add(newItemKey);
+                            if (newItemKey === 'coal' && game.inventory.coal === 0) game.inventory.coal = 1;
+                            const story = game.unlockStories[newItemKey] || `Unlocked: <span class="item-emoji">${game.itemEmojis[newItemKey]||''}</span> ${game.taskDetails[newItemKey]?.name || newItemKey}!`;
+                            addLog(story);
+                        }
+                    });
+                }
 
-                // First apple hint
                 if (task.item === 'apple' && game.inventory.apple === 1 && !game.craftedOnce.has('stick') && !game.trueEndgameTriggered) addLog(`The first apple... Perhaps two more ${game.itemEmojis.apple} would reveal something...`);
 
-                // Worker state update (rest or continue) only if worker wasn't removed
-                 if (workerStillExists) {
-                     worker.currentTask = null; // Clear task *before* checking rest
-                     if (worker.tasksCompletedSinceRest >= worker.jobsUntilRest) {
-                         worker.isResting = true; worker.restDuration = Math.floor(Math.random() * MAX_REST_DURATION_MS_RANGE) + MIN_REST_DURATION_MS;
-                         worker.restStartTime = Date.now(); worker.restProgress = 0;
-                         updateUI(); // Show worker is resting
+                if (workerStillExists) {
+                    worker.currentTask = null; // Clear task before checking rest
+                    if (worker.tasksCompletedSinceRest >= worker.jobsUntilRest) {
+                        worker.isResting = true;
+                        worker.restDuration = Math.floor(Math.random() * MAX_REST_DURATION_MS_RANGE) + MIN_REST_DURATION_MS;
+                        worker.restStartTime = Date.now();
+                        worker.restProgress = 0;
 
-                         let restAnimId;
-                         const updateRestLoop = () => { if (!worker.isResting || game.trueEndgameTriggered) { cancelAnimationFrame(restAnimId); return; } worker.restProgress = Math.min(((Date.now() - worker.restStartTime) / worker.restDuration) * 100, 100); updateTaskQueue(); if (worker.restProgress < 100) restAnimId = requestAnimationFrame(updateRestLoop); };
-                         if(!game.trueEndgameTriggered) restAnimId = requestAnimationFrame(updateRestLoop);
+                        const workerIndexForLog = game.workers.indexOf(worker) + 1; // Get current index for log messages
+                        if (Math.random() < 0.33 || !game.workerPonderingQuotes || game.workerPonderingQuotes.length === 0) { // Approx 1/3 chance for "Sleeping"
+                            worker.currentRestMessage = "Sleeping";
+                        } else {
+                            worker.currentRestMessage = "<i>"+game.workerPonderingQuotes[Math.floor(Math.random() * game.workerPonderingQuotes.length)]+"</i>";
+                        }
 
-                         setTimeout(() => {
-                             if(game.trueEndgameTriggered) return;
-                             worker.isResting = false; worker.tasksCompletedSinceRest = 0; worker.jobsUntilRest = Math.floor(Math.random() * MAX_JOBS_BEFORE_REST_RANGE) + MIN_JOBS_BEFORE_REST; worker.busy = false; worker.restProgress = 0;
-                             updateUI(); // Show worker is available
-                             dispatchTasks(); // Check for new tasks
-                         }, worker.restDuration);
-                     } else {
-                         worker.busy = false; // Make worker available immediately
-                     }
-                 }
+                        updateUI(); // Update UI to show worker is resting (this will call updateTaskQueue)
 
-                // Update UI and dispatch tasks if game continues
-                 if (!game.trueEndgameTriggered) {
-                     updateUI(); // Full UI update after task completion and potential unlocks
-                     dispatchTasks(); // Check if the now-free worker can take another task
-                 }
+                        let restAnimId;
+                        const updateRestLoop = () => { if (!worker.isResting || game.trueEndgameTriggered) { cancelAnimationFrame(restAnimId); return; } worker.restProgress = Math.min(((Date.now() - worker.restStartTime) / worker.restDuration) * 100, 100); updateTaskQueue(); if (worker.restProgress < 100) restAnimId = requestAnimationFrame(updateRestLoop); };
+                        if(!game.trueEndgameTriggered) restAnimId = requestAnimationFrame(updateRestLoop);
+
+                        setTimeout(() => {
+                            if(game.trueEndgameTriggered) return;
+                            // Check if the worker object still exists before modifying it
+                            const currentWorkerInstance = game.workers.find(w => w === worker);
+                            if (currentWorkerInstance) {
+                                currentWorkerInstance.isResting = false;
+                                currentWorkerInstance.tasksCompletedSinceRest = 0;
+                                currentWorkerInstance.jobsUntilRest = Math.floor(Math.random() * MAX_JOBS_BEFORE_REST_RANGE) + MIN_JOBS_BEFORE_REST;
+                                currentWorkerInstance.busy = false;
+                                currentWorkerInstance.restProgress = 0;
+                                currentWorkerInstance.currentRestMessage = null; // Clear message when done resting
+                            }
+                            updateUI();
+                            dispatchTasks();
+                        }, worker.restDuration);
+                    } else {
+                        worker.busy = false;
+                    }
+                }
+
+                if (!game.trueEndgameTriggered) {
+                    updateUI();
+                    dispatchTasks();
+                }
 
             } else if (worker.isResting) {
-                 // Worker started resting during the task's setTimeout duration.
-                 // The task effectively didn't complete 'normally'.
-                 // We might need to handle refunding resources or re-queueing the task if critical.
-                 // For simplicity now, we'll assume the task is lost if rest interrupts it.
-                 // The worker will finish resting later.
-                 console.log(`Worker ${game.workers.indexOf(worker)} started resting, interrupting task ${task.item}`);
-                  worker.currentTask = null; // Clear the interrupted task
-                  updateUI(); // Update UI to reflect worker resting state
+                // Worker started resting during the task's setTimeout duration.
+                // Task didn't complete 'normally'.
+                // For now, assume task is lost if rest interrupts.
+                const workerIndexForLog = game.workers.indexOf(worker) + 1;
+                console.log(`Worker ${workerIndexForLog > 0 ? workerIndexForLog : '(unknown)'} started resting, interrupting task ${task.item}`);
+                worker.currentTask = null; // Clear the interrupted task
+                updateUI();
             } else {
-                 // Task was cancelled or worker became invalid (e.g., removed for soldier training by another task finishing first)
-                 console.log(`Task ${task.item} cancelled or worker invalid.`);
-                  // Ensure worker state is clean if it still exists but lost its task
-                  const stillExists = game.workers.includes(worker);
-                  if(stillExists && worker.currentTask === task) {
-                      worker.currentTask = null;
-                      worker.busy = false;
-                  }
-                 if (!game.trueEndgameTriggered) {
-                     updateUI();
-                     dispatchTasks();
-                 }
+                // Task was cancelled or worker became invalid
+                console.log(`Task ${task.item} cancelled or worker invalid.`);
+                const stillExists = game.workers.includes(worker);
+                if(stillExists && worker.currentTask === task) {
+                    worker.currentTask = null;
+                    worker.busy = false;
+                }
+                if (!game.trueEndgameTriggered) {
+                    updateUI();
+                    dispatchTasks();
+                }
             }
-        } // End executeTaskLifecycle
+        }
+        // ========================================================================
 
 
         function getPrerequisiteCount(gameInstance, neededItemKey) {
@@ -1671,7 +1695,6 @@
                 const neededItemKey = reqDetails.needs;
                 const neededCount = reqDetails.count;
                 const currentCountOfPrerequisite = getPrerequisiteCount(game, neededItemKey);
-                // Only consider if the prerequisite item is unlocked and we have some, but not enough
                 if (game.unlocked.has(neededItemKey) && currentCountOfPrerequisite < neededCount) {
                         const names = {
                             itemToUnlockEmoji: game.itemEmojis[itemToUnlockKey] || '',
@@ -1708,23 +1731,22 @@
                     if (game.unlocked.has(itemToUnlockKey) || !game.taskDetails[itemToUnlockKey]) continue;
                     const neededItemKey = reqDetails.needs;
                     const currentCountOfPrerequisite = getPrerequisiteCount(game, neededItemKey);
-                    // Hint if prerequisite is unlocked, but we have zero, and it's gatherable or craftable
                     if (game.unlocked.has(neededItemKey) && currentCountOfPrerequisite === 0 && game.taskDetails[neededItemKey]) {
-                         const isActionable = game.taskDetails[neededItemKey]?.isGatherable || Object.keys(game.taskDetails[neededItemKey]?.cost || {}).length > 0;
-                         if (isActionable) {
-                             const names = {
-                                 itemToUnlockEmoji: game.itemEmojis[itemToUnlockKey] || '',
-                                 itemToUnlockName: game.taskDetails[itemToUnlockKey]?.name || itemToUnlockKey,
-                                 neededItemEmoji: game.itemEmojis[neededItemKey] || '',
-                                 neededItemName: game.taskDetails[neededItemKey]?.name || neededItemKey,
-                             };
-                             needsGatheringItems.push({ itemToUnlockKey, neededItemKey, names, isGatherable: game.taskDetails[neededItemKey]?.isGatherable });
-                         }
+                        const isActionable = game.taskDetails[neededItemKey]?.isGatherable || Object.keys(game.taskDetails[neededItemKey]?.cost || {}).length > 0;
+                        if (isActionable) {
+                            const names = {
+                                itemToUnlockEmoji: game.itemEmojis[itemToUnlockKey] || '',
+                                itemToUnlockName: game.taskDetails[itemToUnlockKey]?.name || itemToUnlockKey,
+                                neededItemEmoji: game.itemEmojis[neededItemKey] || '',
+                                neededItemName: game.taskDetails[neededItemKey]?.name || neededItemKey,
+                            };
+                            needsGatheringItems.push({ itemToUnlockKey, neededItemKey, names, isGatherable: game.taskDetails[neededItemKey]?.isGatherable });
+                        }
                     }
                 }
                 if (needsGatheringItems.length > 0) {
                     const randomGatherItem = needsGatheringItems[Math.floor(Math.random() * needsGatheringItems.length)];
-                     const actionVerb = randomGatherItem.isGatherable ? "gather" : "craft";
+                        const actionVerb = randomGatherItem.isGatherable ? "gather" : "craft";
                     addLog(`To unlock ${randomGatherItem.names.itemToUnlockEmoji} ${randomGatherItem.names.itemToUnlockName}, you'll first need to ${actionVerb} some ${randomGatherItem.names.neededItemEmoji} ${randomGatherItem.names.neededItemName}.`);
                     hintProvided = true;
                 }
@@ -1735,10 +1757,10 @@
                 if (game.unlocked.has('wireBender') && game.inventory.paperclip === 0 && game.inventory.ironWire > 0) {
                     specificHints.push(`You have a ${game.itemEmojis.wireBender} Wire Bender and ${game.inventory.ironWire} ${game.itemEmojis.ironWire} Iron Wire. Time to make some ${game.itemEmojis.paperclip} paperclips?`);
                 }
-                 const workerCost = game.getWorkerCost(); // Get current worker cost
-                 if (game.unlocked.has('worker') && game.workers.length < 2 && game.inventory.gem >= workerCost.gems) {
+                const workerCost = game.getWorkerCost();
+                if (game.unlocked.has('worker') && game.workers.length < 2 && game.inventory.gem >= workerCost.gems) {
                     specificHints.push(`You have ${game.inventory.gem}${game.itemEmojis.gem} and only ${game.workers.length} ${game.itemEmojis.worker} worker. Consider training another! (Cost: ${workerCost.gems}${game.itemEmojis.gem})`);
-                 }
+                }
                 if (game.getTotalFoodPoints() < game.workers.length * 5 && game.unlocked.has('apple')) {
                     specificHints.push(`Your ${game.itemEmojis.worker} workers might be getting hungry. Gather some ${game.itemEmojis.apple} apples!`);
                 }
@@ -1746,7 +1768,7 @@
                     addLog(specificHints[Math.floor(Math.random() * specificHints.length)]);
                 }
             }
-            scheduleNextHint(); // Schedule the next hint regardless of whether one was provided this time
+            scheduleNextHint();
         }
 
         function scheduleNextHint() {
@@ -1754,9 +1776,8 @@
                 if(hintTimeoutId) clearTimeout(hintTimeoutId);
                 return;
             }
-             // Clear previous timeout if it exists, to prevent duplicates if called early
-             if(hintTimeoutId) clearTimeout(hintTimeoutId);
-            const randomDelay = Math.floor(Math.random() * (80000 - 40000 + 1)) + 40000; // 40-80 seconds
+            if(hintTimeoutId) clearTimeout(hintTimeoutId);
+            const randomDelay = Math.floor(Math.random() * (80000 - 40000 + 1)) + 40000;
             hintTimeoutId = setTimeout(providePeriodicHint, randomDelay);
         }
 
@@ -1778,77 +1799,79 @@
         }
 
         function scheduleRandomMessageWithClear(messageArray, minDelay, maxDelay, timeoutVarNameOnGame) {
-             if (game.trueEndgameTriggered) {
-                 if(game[timeoutVarNameOnGame]) clearTimeout(game[timeoutVarNameOnGame]);
-                 return;
-             }
-              // Clear previous timeout before setting a new one
-             if(game[timeoutVarNameOnGame]) clearTimeout(game[timeoutVarNameOnGame]);
+            if (game.trueEndgameTriggered) {
+                if(game[timeoutVarNameOnGame]) clearTimeout(game[timeoutVarNameOnGame]);
+                return;
+            }
+            if(game[timeoutVarNameOnGame]) clearTimeout(game[timeoutVarNameOnGame]);
 
-             const randomInterval = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
-             game[timeoutVarNameOnGame] = setTimeout(() => {
-                 game.logRandomMessage(messageArray);
-                 scheduleRandomMessageWithClear(messageArray, minDelay, maxDelay, timeoutVarNameOnGame); // Schedule the next one
-             }, randomInterval);
-         }
+            const randomInterval = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+            game[timeoutVarNameOnGame] = setTimeout(() => {
+                game.logRandomMessage(messageArray);
+                scheduleRandomMessageWithClear(messageArray, minDelay, maxDelay, timeoutVarNameOnGame);
+            }, randomInterval);
+        }
 
-        // --- Window Onload Setup ---
         window.onload = function() {
-            // Clean up names (optional, but good practice)
             Object.keys(game.taskDetails).forEach(key => {
-                 if (game.taskDetails[key] && game.taskDetails[key].name) {
-                     const name = game.taskDetails[key].name;
-                     if (name.startsWith("Gather ")) game.taskDetails[key].name = name.substring(7);
-                     else if (name.startsWith("Build ")) game.taskDetails[key].name = name.substring(6);
-                     else if (name.startsWith("Craft ")) game.taskDetails[key].name = name.substring(6);
-                     else if (name.startsWith("Mine ")) game.taskDetails[key].name = name.substring(5);
-                     else if (name.startsWith("Train ")) game.taskDetails[key].name = name.substring(6);
-                 }
+                if (game.taskDetails[key] && game.taskDetails[key].name) {
+                    const name = game.taskDetails[key].name;
+                    if (name.startsWith("Gather ")) game.taskDetails[key].name = name.substring(7);
+                    else if (name.startsWith("Build ")) game.taskDetails[key].name = name.substring(6);
+                    else if (name.startsWith("Craft ")) game.taskDetails[key].name = name.substring(6);
+                    else if (name.startsWith("Mine ")) game.taskDetails[key].name = name.substring(5);
+                    else if (name.startsWith("Train ")) game.taskDetails[key].name = name.substring(6);
+                }
             });
 
-            // Debug button listener
             document.getElementById('debug-add-worker')?.addEventListener('click', () => {
                 if (game.trueEndgameTriggered) return;
                 game.cheaterDetected = true; document.getElementById('cheater-watermark').style.display = 'flex';
                 game.workers.push(game.createWorkerObject()); addLog(`DEBUG: Worker added. Pop: ${game.workers.length}`); updateUI(); dispatchTasks();
             });
 
-            // Infinity mode listener
             document.getElementById('infinity-mode-btn')?.addEventListener('click', () => {
-                if (game.trueEndgameTriggered) return;
+                if (game.trueEndgameTriggered) return; // Should not happen if button is hidden, but good check
                 game.infinityModeActive = true; document.getElementById('endgame-modal').style.display = 'none';
                 document.querySelectorAll('.firework-paperclip').forEach(fw => fw.remove());
                 addLog("Infinity Mode activated. The universe of paperclips is now your sandbox...");
-                if (hintTimeoutId) clearTimeout(hintTimeoutId);
-                scheduleNextHint();
+                if (hintTimeoutId) clearTimeout(hintTimeoutId); // Clear existing hint timeout
+                scheduleNextHint(); // Restart hints for infinity mode
+                // Restart other timed events if desired for infinity mode
+                if (visitorEventIntervalId) clearInterval(visitorEventIntervalId);
+                visitorEventIntervalId = setInterval(() => { game.handleVisitorEvent(); updateUI(); }, 270000);
+
+                if(game.randomSuspenseTimeoutId) clearTimeout(game.randomSuspenseTimeoutId);
+                scheduleRandomMessageWithClear(game.randomSuspenseMessages, 3 * 60 * 1000, 4 * 60 * 1000, 'randomSuspenseTimeoutId');
+                if(game.mysteriousAmbitionTimeoutId) clearTimeout(game.mysteriousAmbitionTimeoutId);
+                scheduleRandomMessageWithClear(game.mysteriousAmbitionQuotes, 2 * 60 * 1000, 5 * 60 * 1000, 'mysteriousAmbitionTimeoutId');
+                if(game.worldDominationTimeoutId) clearTimeout(game.worldDominationTimeoutId);
+                scheduleRandomMessageWithClear(game.worldDominationQuotes, 3 * 60 * 1000, 5 * 60 * 1000, 'worldDominationTimeoutId');
             });
 
-             // *** Event Listener for Inventory Buttons (using delegation) ***
             document.getElementById('inventory').addEventListener('click', function(event) {
                 const button = event.target.closest('.plus-one-btn');
                 if (button && !button.disabled) {
                     const itemKey = button.dataset.item;
                     if (itemKey) {
-                        addTask(itemKey); // addTask now handles UI update and dispatching
+                        addTask(itemKey);
                     } else {
                         console.warn('Clicked button missing data-item:', button);
                     }
                 }
             });
 
-            // Initial Setup Calls
-            updateUI(); // Initial Render
+            updateUI();
             addLog("The orchard hums with a silence that watches. Roots whisper secrets older than empires, and above, the apples glow faintly—like thoughts waiting to be born. One of them ends the world. One of them remakes it in your image. Pick an 🍏 Apple.");
-            dispatchTasks(); // Start processing any initial tasks (none in this case)
-            scheduleNextHint(); // Start hints
+            dispatchTasks();
+            scheduleNextHint();
 
-            // Schedule random messages and visitor events
             scheduleRandomMessageWithClear(game.randomSuspenseMessages, 3 * 60 * 1000, 4 * 60 * 1000, 'randomSuspenseTimeoutId');
             scheduleRandomMessageWithClear(game.mysteriousAmbitionQuotes, 2 * 60 * 1000, 5 * 60 * 1000, 'mysteriousAmbitionTimeoutId');
             scheduleRandomMessageWithClear(game.worldDominationQuotes, 3 * 60 * 1000, 5 * 60 * 1000, 'worldDominationTimeoutId');
-            visitorEventIntervalId = setInterval(() => { game.handleVisitorEvent(); updateUI(); }, 270000); // Call updateUI after visitor event too
+            visitorEventIntervalId = setInterval(() => { game.handleVisitorEvent(); updateUI(); }, 270000);
 
-        }; // End of window.onload
+        };
     </script>
 </body>
 </html>
